@@ -1,0 +1,161 @@
+.patient-clinical-banner {
+    width: 100%;
+    background: rgba(22, 32, 50, 0.6);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(5, 151, 137, 0.4);
+    padding: 1.5rem 0;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.patient-clinical-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, #059789, #00F0FF);
+}
+
+.banner-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+
+.patient-identity {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.patient-avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #059789 0%, #00F0FF 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: white;
+    box-shadow: 0 0 20px rgba(5, 151, 137, 0.3);
+}
+
+.identity-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.patient-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #F8FAFC;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+
+.patient-meta {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    color: #94A3B8;
+    display: flex;
+    gap: 1rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.clinical-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.group-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.group-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #F8FAFC;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.badge-teal {
+    background: rgba(5, 151, 137, 0.1);
+    color: #059789;
+    border: 1px solid rgba(5, 151, 137, 0.3);
+}
+
+.badge-cyan {
+    background: rgba(0, 240, 255, 0.1);
+    color: #00F0FF;
+    border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+.badge-amber {
+    background: rgba(245, 158, 11, 0.1);
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.clinical-score {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.score-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #00F0FF;
+}
+
+.score-unit {
+    font-size: 0.875rem;
+    color: #64748B;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .banner-container {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .banner-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}

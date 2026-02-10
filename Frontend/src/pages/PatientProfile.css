@@ -1,0 +1,277 @@
+/* PatientProfile.css */
+
+.patient-profile-root {
+  background-color: #0b1221;
+  min-height: 100vh;
+  padding-top: 48px;
+  padding-bottom: 48px;
+}
+
+.profile-header {
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-title-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-accent-bar {
+  width: 4px;
+  height: 40px;
+  background-color: #00f0ff;
+}
+
+.header-title {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+  color: #fff;
+}
+
+.header-subtitle {
+  color: #64748b;
+  font-family: "Space Grotesk", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.identity-card {
+  padding: 32px;
+  background-color: rgba(22, 32, 50, 0.8);
+  border-radius: 8px;
+  border: 1px solid rgba(5, 151, 137, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.identity-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.patient-avatar {
+  width: 60px;
+  height: 60px;
+  background-color: #059789;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.patient-name {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.mrn-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mrn-text {
+  color: #00f0ff;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+}
+
+.identity-details-grid {
+  margin-bottom: 24px;
+}
+
+.detail-label {
+  color: #64748b;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.detail-value {
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.detail-value-mono {
+  color: #fff;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.status-badge-box {
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.active-case-chip {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+}
+
+/* Diagnosis & Metrics */
+.clinical-overview-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.diagnosis-box {
+  flex: 1.5;
+  padding: 24px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.diagnosis-title {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+
+.type-chip {
+  background-color: #059789;
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.metrics-box {
+  flex: 2;
+  padding: 24px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+/* Modules Grid */
+.modules-section-title {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.module-card {
+  padding: 24px 16px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  height: 100%;
+}
+
+.module-card:hover {
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+  transform: translateY(-5px);
+}
+
+.module-label {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1.5px;
+  text-align: center;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+/* Additional Insights */
+.insights-section {
+  margin-top: 48px;
+}
+
+.insight-card {
+  padding: 24px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  height: 100%;
+}
+
+.insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.insight-title {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.symptom-chip {
+  background-color: rgba(5, 151, 137, 0.1);
+  color: #059789;
+  border-radius: 6px;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.comorbidity-chip {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #64748b;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.biomarker-box {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.biomarker-label {
+  color: #64748b;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.biomarker-value {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .clinical-overview-row {
+    flex-direction: column;
+  }
+}

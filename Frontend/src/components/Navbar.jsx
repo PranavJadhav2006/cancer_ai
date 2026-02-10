@@ -92,7 +92,7 @@ const Navbar = () => {
                   variant="text" 
                   className="nav-secondary-btn"
                 >
-                  Personnel Access
+                  Login
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

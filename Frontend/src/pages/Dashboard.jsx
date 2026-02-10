@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, Container, Grid, Typography, Button, IconButton, Chip, TablePagination, CircularProgress 
+  Box, Container, Grid, Typography, Button, IconButton, Chip, TablePagination, CircularProgress,
+  TextField, InputAdornment, Menu, MenuItem
 } from '@mui/material';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import CloseIcon from '@mui/icons-material/Close';
 
 // --- THEME CONSTANTS ---
 const colors = {
@@ -27,15 +29,15 @@ const colors = {
 // --- COMPONENTS ---
 
 const StatItem = ({ label, value, unit }) => (
-  <Box sx={{ px: 3, borderRight: `1px solid ${colors.border}`, '&:last-child': { borderRight: 'none' } }}>
-    <Typography variant="h4" sx={{ fontFamily: '"Rajdhani"', fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+  <Box sx={{ px: 6, borderRight: `1px solid ${colors.border}`, '&:last-child': { borderRight: 'none' }, flex: 1, minWidth: '200px' }}>
+    <Typography variant="h3" sx={{ fontFamily: '"Rajdhani"', fontWeight: 700, color: '#fff', lineHeight: 1 }}>
       {value}
     </Typography>
-    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-      <Typography variant="caption" sx={{ color: colors.cyan, fontFamily: '"JetBrains Mono"', fontWeight: 700 }}>
+    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mt: 1 }}>
+      <Typography variant="caption" sx={{ color: colors.cyan, fontFamily: '"JetBrains Mono"', fontWeight: 700, fontSize: '0.8rem' }}>
         {unit}
       </Typography>
-      <Typography variant="caption" sx={{ color: colors.muted, fontFamily: '"Space Grotesk"' }}>
+      <Typography variant="caption" sx={{ color: colors.muted, fontFamily: '"Space Grotesk"', fontSize: '0.8rem' }}>
         {label}
       </Typography>
     </Box>
@@ -43,8 +45,7 @@ const StatItem = ({ label, value, unit }) => (
 );
 
 const PatientRow = ({ p, index, onClick }) => {
-  // Database models might use status or we can derive it from pathologyAnalysis
-  const status = p.pathologyAnalysis ? 'Analyzed' : 'Intake';
+  const status = p.pathologyAnalysis && Object.keys(p.pathologyAnalysis).length > 0 ? 'Analyzed' : 'Intake';
   const isComplete = status === 'Analyzed';
   const statusColor = isComplete ? colors.green : colors.amber;
   
@@ -56,7 +57,7 @@ const PatientRow = ({ p, index, onClick }) => {
     <motion.div 
       initial={{ opacity: 0, x: -20 }} 
       animate={{ opacity: 1, x: 0 }} 
-      transition={{ delay: index * 0.1 }}
+      transition={{ delay: index * 0.05 }}
     >
       <Box 
         onClick={onClick}
@@ -67,7 +68,7 @@ const PatientRow = ({ p, index, onClick }) => {
           mb: 1.5,
           bgcolor: colors.glass, 
           borderRadius: '4px',
-          borderLeft: `4px solid ${statusColor}`, // Status Indicator Bar
+          borderLeft: `4px solid ${statusColor}`,
           transition: 'all 0.2s',
           cursor: 'pointer',
           '&:hover': { 
@@ -77,8 +78,6 @@ const PatientRow = ({ p, index, onClick }) => {
           }
         }}
       >
-        
-        {/* ID & Identity */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '25%' }}>
           <Box>
             <Typography variant="subtitle2" sx={{ color: '#fff', fontFamily: '"Space Grotesk"', fontWeight: 700 }}>
@@ -90,7 +89,6 @@ const PatientRow = ({ p, index, onClick }) => {
           </Box>
         </Box>
 
-        {/* Diagnosis */}
         <Box sx={{ width: '30%' }}>
           <Typography variant="body2" sx={{ color: isComplete ? colors.cyan : colors.muted, fontFamily: '"Space Grotesk"' }}>
             {p.diagnosis 
@@ -99,14 +97,12 @@ const PatientRow = ({ p, index, onClick }) => {
           </Typography>
         </Box>
 
-        {/* Date */}
         <Box sx={{ width: '20%' }}>
           <Typography variant="caption" sx={{ color: '#fff', fontFamily: '"Space Grotesk"' }}>
             {formattedDate}
           </Typography>
         </Box>
 
-        {/* Status */}
         <Box sx={{ width: '15%' }}>
           <Chip 
             label={status.toUpperCase()} 
@@ -122,13 +118,11 @@ const PatientRow = ({ p, index, onClick }) => {
           />
         </Box>
 
-        {/* Action */}
         <Box sx={{ width: '10%', textAlign: 'right' }}>
            <IconButton size="small" sx={{ color: colors.teal }}>
              <ArrowForwardIosIcon fontSize="inherit" />
            </IconButton>
         </Box>
-
       </Box>
     </motion.div>
   );
@@ -141,6 +135,12 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dbStats, setDbStats] = useState([]);
   const [dbPatients, setDbPatients] = useState([]);
+  
+  // Search & Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [filterAnchor, setFilterAnchor] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('All');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -149,20 +149,17 @@ const Dashboard = () => {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        // 1. Fetch Stats
         const statsRes = await axios.get('http://localhost:8000/api/dashboard/stats', config);
         if (statsRes.data.success) {
           const s = statsRes.data.data.overview;
           setDbStats([
             { label: 'Total Patients', value: String(s.totalPatients).padStart(2, '0'), unit: 'CASES' },
             { label: 'Active Analyses', value: String(s.totalAnalyses).padStart(2, '0'), unit: 'RUNNING' },
-            { label: 'Treatment Plans', value: String(s.activeTreatments).padStart(2, '0'), unit: 'GENERATED' },
-            { label: 'Avg Confidence', value: '92%', unit: 'AI SCORE' },
+            { label: 'Avg Confidence', value: `${s.avgConfidence}%`, unit: 'AI SCORE' },
           ]);
         }
 
-        // 2. Fetch Recent Patients
-        const patientsRes = await axios.get('http://localhost:8000/api/dashboard/recent-patients?limit=50', config);
+        const patientsRes = await axios.get('http://localhost:8000/api/dashboard/recent-patients?limit=100', config);
         if (patientsRes.data.success) {
           setDbPatients(patientsRes.data.data);
         }
@@ -172,7 +169,6 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-
     fetchDashboardData();
   }, []);
 
@@ -185,13 +181,31 @@ const Dashboard = () => {
     setPage(0);
   };
 
-  const displayedPatients = dbPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  // Dynamic Filtering Logic
+  const filteredPatients = dbPatients.filter(p => {
+    const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
+    const mrn = p.mrn.toLowerCase();
+    const diagnosis = (p.diagnosis || '').toLowerCase();
+    const searchMatch = fullName.includes(searchTerm.toLowerCase()) || mrn.includes(searchTerm.toLowerCase()) || diagnosis.includes(searchTerm.toLowerCase());
+    
+    const filterMatch = activeFilter === 'All' || p.cancerType === activeFilter;
+    
+    return searchMatch && filterMatch;
+  });
+
+  const displayedPatients = filteredPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const handleFilterClick = (event) => setFilterAnchor(event.currentTarget);
+  const handleFilterClose = (type) => {
+    if (type) setActiveFilter(type);
+    setFilterAnchor(null);
+    setPage(0);
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: colors.bg, py: 6, px: { xs: 2, md: 6 } }}>
       <Container maxWidth="xl">
         
-        {/* --- HEADER SECTION --- */}
         <Box sx={{ mb: 6 }}>
           <Typography variant="h3" sx={{ fontFamily: '"Rajdhani"', fontWeight: 700, color: '#fff' }}>
             CLINICAL DASHBOARD
@@ -201,18 +215,18 @@ const Dashboard = () => {
           </Typography>
         </Box>
 
-        {/* --- STATS RAIL --- */}
         <Box sx={{ 
           bgcolor: 'rgba(22, 32, 50, 0.6)', 
           border: `1px solid ${colors.border}`, 
           borderRadius: '12px', 
-          p: 3, 
+          p: 4, 
           mb: 6,
           display: 'flex',
           flexWrap: 'wrap',
-          gap: 2,
+          justifyContent: 'space-between',
+          gap: 4,
           backdropFilter: 'blur(10px)',
-          minHeight: '100px'
+          minHeight: '120px'
         }}>
           {loading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', px: 3, gap: 2 }}>
@@ -224,19 +238,70 @@ const Dashboard = () => {
           ))}
         </Box>
 
-        {/* --- PATIENT LIST HEADER --- */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" sx={{ fontFamily: '"Rajdhani"', fontWeight: 700, color: '#fff' }}>
-            PATIENT CASES
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h5" sx={{ fontFamily: '"Rajdhani"', fontWeight: 700, color: '#fff' }}>
+              PATIENT CASES
+            </Typography>
+            {activeFilter !== 'All' && (
+              <Chip 
+                label={activeFilter} 
+                onDelete={() => setActiveFilter('All')} 
+                size="small"
+                sx={{ bgcolor: `${colors.cyan}20`, color: colors.cyan, fontFamily: '"Rajdhani"', fontWeight: 700 }}
+              />
+            )}
+          </Box>
           
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <IconButton sx={{ color: colors.muted, border: '1px solid rgba(255,255,255,0.1)' }}>
-              <SearchIcon />
-            </IconButton>
-            <IconButton sx={{ color: colors.muted, border: '1px solid rgba(255,255,255,0.1)' }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <AnimatePresence>
+              {showSearch && (
+                <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 250, opacity: 1 }} exit={{ width: 0, opacity: 0 }}>
+                  <TextField 
+                    size="small"
+                    placeholder="Search Name, MRN..."
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
+                    autoFocus
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: colors.muted, fontSize: 20 }} /></InputAdornment>,
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton size="small" onClick={() => { setSearchTerm(''); setShowSearch(false); }}>
+                            <CloseIcon sx={{ fontSize: 16, color: colors.muted }} />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                      sx: { 
+                        bgcolor: 'rgba(255,255,255,0.05)', 
+                        color: '#fff', 
+                        borderRadius: '4px',
+                        fontFamily: '"Space Grotesk"',
+                        '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
+                      }
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {!showSearch && (
+              <IconButton onClick={() => setShowSearch(true)} sx={{ color: colors.muted, border: '1px solid rgba(255,255,255,0.1)' }}>
+                <SearchIcon />
+              </IconButton>
+            )}
+
+            <IconButton onClick={handleFilterClick} sx={{ color: activeFilter !== 'All' ? colors.cyan : colors.muted, border: `1px solid ${activeFilter !== 'All' ? colors.cyan : 'rgba(255,255,255,0.1)'}` }}>
               <FilterListIcon />
             </IconButton>
+
+            <Menu anchorEl={filterAnchor} open={Boolean(filterAnchor)} onClose={() => handleFilterClose()} PaperProps={{ sx: { bgcolor: colors.bg, border: `1px solid ${colors.border}`, color: '#fff' } }}>
+               <MenuItem onClick={() => handleFilterClose('All')} sx={{ fontFamily: '"Rajdhani"', fontWeight: 600 }}>ALL TYPES</MenuItem>
+               {['Brain', 'Breast', 'Lung', 'Liver', 'Pancreas'].map(type => (
+                 <MenuItem key={type} onClick={() => handleFilterClose(type)} sx={{ fontFamily: '"Rajdhani"', fontWeight: 600 }}>{type.toUpperCase()}</MenuItem>
+               ))}
+            </Menu>
+
             <Button 
               variant="contained" 
               startIcon={<AddIcon />}
@@ -254,7 +319,6 @@ const Dashboard = () => {
           </Box>
         </Box>
 
-        {/* --- TABLE HEADERS (Visual Only) --- */}
         <Box sx={{ display: 'flex', px: 3, mb: 1 }}>
           <Typography variant="caption" sx={{ width: '25%', color: colors.muted }}>PATIENT IDENTITY</Typography>
           <Typography variant="caption" sx={{ width: '30%', color: colors.muted }}>PRIMARY DIAGNOSIS</Typography>
@@ -263,7 +327,6 @@ const Dashboard = () => {
           <Typography variant="caption" sx={{ width: '10%', textAlign: 'right', color: colors.muted }}>ACTION</Typography>
         </Box>
 
-        {/* --- PATIENT ROWS --- */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minHeight: '200px' }}>
           {loading ? (
              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -271,7 +334,7 @@ const Dashboard = () => {
              </Box>
           ) : displayedPatients.length === 0 ? (
              <Box sx={{ textAlign: 'center', py: 8, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                <Typography sx={{ color: colors.muted }}>No clinical records found in database.</Typography>
+                <Typography sx={{ color: colors.muted }}>No clinical records match your search criteria.</Typography>
              </Box>
           ) : (
             displayedPatients.map((p, index) => (
@@ -285,10 +348,9 @@ const Dashboard = () => {
           )}
         </Box>
 
-        {/* --- PAGINATION --- */}
         <TablePagination
           component="div"
-          count={dbPatients.length}
+          count={filteredPatients.length}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}
@@ -297,28 +359,13 @@ const Dashboard = () => {
           sx={{
             color: colors.muted,
             borderTop: `1px solid ${colors.border}`,
-            '.MuiTablePagination-select': {
-              color: colors.text,
-              fontFamily: '"Space Grotesk"',
-            },
-            '.MuiTablePagination-selectIcon': {
-              color: colors.teal,
-            },
-            '.MuiTablePagination-displayedRows': {
-              fontFamily: '"Space Grotesk"',
-            },
-            '.MuiTablePagination-actions': {
-              color: colors.teal,
-            },
-            '.MuiIconButton-root': {
-              color: colors.teal,
-              '&.Mui-disabled': {
-                color: 'rgba(255, 255, 255, 0.3)',
-              }
-            }
+            '.MuiTablePagination-select': { color: colors.text, fontFamily: '"Space Grotesk"' },
+            '.MuiTablePagination-selectIcon': { color: colors.teal },
+            '.MuiTablePagination-displayedRows': { fontFamily: '"Space Grotesk"' },
+            '.MuiTablePagination-actions': { color: colors.teal },
+            '.MuiIconButton-root': { color: colors.teal, '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.3)' } }
           }}
         />
-
       </Container>
     </Box>
   );
