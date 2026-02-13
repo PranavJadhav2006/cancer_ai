@@ -24,73 +24,65 @@ def load_model():
 
 def flatten_rule_output(rules):
     lines = []
-    # (Rest of the function remains the same)
+    
+    # Helper to safely join lists that might contain strings or dicts
+    def safe_join(items):
+        if not items: return ""
+        str_items = [i['treatment'] if isinstance(i, dict) else i for i in items]
+        return ", ".join(filter(None, str_items))
 
     # -------- Primary treatment --------
     if rules.get("primary_treatments"):
-        for t in rules["primary_treatments"]:
-            lines.append(f"Primary treatment: {t}")
+        lines.append(f"Primary treatment: {safe_join(rules['primary_treatments'])}")
 
     # -------- Surgery --------
     if rules.get("surgery"):
-        lines.append("Surgery options: " + ", ".join(rules["surgery"]))
+        lines.append(f"Surgery options: {safe_join(rules['surgery'])}")
 
     # -------- Radiation --------
     if rules.get("radiation"):
-        if isinstance(rules["radiation"], list):
-            lines.append("Radiation options: " + ", ".join(rules["radiation"]))
-        else:
-            lines.append("Radiation options: " + str(rules["radiation"]))
+        lines.append(f"Radiation options: {safe_join(rules['radiation'])}")
 
     # -------- Systemic / Chemo --------
     if rules.get("systemic"):
-        for t in rules["systemic"]:
-            lines.append(f"Systemic therapy: {t}")
+        lines.append(f"Systemic therapy: {safe_join(rules['systemic'])}")
 
     # -------- Targeted biomarkers --------
-    # Fix: Rule engine uses 'targeted'
     targeted = rules.get("targeted") or rules.get("biomarker_targets")
     if targeted:
-        if isinstance(targeted, dict):
-            for k, v in targeted.items():
-                lines.append(f"Targeted therapy for {k}: {v}")
-        elif isinstance(targeted, list):
-            for t in targeted:
-                lines.append(f"Targeted therapy: {t}")
+        lines.append(f"Targeted therapy: {safe_join(targeted)}")
 
     # -------- Immunotherapy --------
-    # Fix: Rule engine uses 'immunotherapy'
     immuno = rules.get("immunotherapy") or rules.get("immunotherapy_candidates")
     if immuno:
-        lines.append("Immunotherapy: " + ", ".join(immuno))
+        lines.append(f"Immunotherapy: {safe_join(immuno)}")
 
     # -------- Performance & Personalization --------
     if rules.get("performance_adjustment"):
         lines.append(f"Performance Status Adjustment: {rules['performance_adjustment']}")
     
     if rules.get("warnings"):
-        lines.append("Clinical Warnings: " + "; ".join(rules["warnings"]))
+        lines.append(f"Clinical Warnings: {'; '.join(rules['warnings'])}")
 
     # -------- Residual Disease --------
     if rules.get("residual_disease"):
-        lines.append(f"Residual disease option: {', '.join(rules['residual_disease'])}")
+        lines.append(f"Residual disease option: {safe_join(rules['residual_disease'])}")
 
     # -------- BRCA --------
     if rules.get("brca_options"):
-        lines.append(f"BRCA option: {', '.join(rules['brca_options'])}")
+        lines.append(f"BRCA option: {safe_join(rules['brca_options'])}")
 
     # -------- Alternative --------
     if rules.get("alternative_options"):
-        lines.append("Alternatives: " + ", ".join(rules["alternative_options"]))
+        lines.append(f"Alternatives: {safe_join(rules['alternative_options'])}")
 
     # -------- Contraindications --------
     if rules.get("contraindications"):
-        lines.append("Contraindications: " + "; ".join(rules["contraindications"]))
+        lines.append(f"Contraindications: {'; '.join(rules['contraindications'])}")
 
     # -------- Follow Up --------
     if rules.get("follow_up"):
-        for f in rules["follow_up"]:
-            lines.append(f"Follow-up: {f}")
+        lines.append(f"Follow-up: {safe_join(rules['follow_up'])}")
 
     return "\n".join(lines)
     
@@ -173,10 +165,14 @@ SUPPORTING EVIDENCE:
         if not safety_alerts:
             safety_alerts = ["Check cardiac, renal, and neuropathy tolerance as applicable."]
 
+        # Handle mixed-type alternatives
+        alternatives = rules.get("alternative_options", ["Standard clinical trial participation."])
+        str_alternatives = [alt['treatment'] if isinstance(alt, dict) else alt for alt in alternatives]
+
         plan_data = {
             "primary_treatment": primary_display,
             "clinical_rationale": rules.get("performance_adjustment", "Treatment aligns with standard clinical guideline recommendations."),
-            "alternatives": rules.get("alternative_options", ["Standard clinical trial participation."]),
+            "alternatives": str_alternatives,
             "safety_alerts": safety_alerts,
             "follow_up": "; ".join(rules.get("follow_up", ["Routine clinical evaluation"]))
         }

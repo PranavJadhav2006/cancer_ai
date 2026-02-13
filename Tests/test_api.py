@@ -3,7 +3,13 @@ import json
 
 url = "http://localhost:5000/predict_side_effects"
 
-with open("test_data.json", "r") as f:
+import os
+
+# Get path relative to the script
+base_dir = os.path.dirname(os.path.abspath(__file__))
+data_path = os.path.join(base_dir, "test_data.json")
+
+with open(data_path, "r") as f:
     data = json.load(f)
 
 headers = {"Content-Type": "application/json"}

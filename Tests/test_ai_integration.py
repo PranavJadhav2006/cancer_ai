@@ -1,5 +1,11 @@
-from ai_engine.rule_engine import run_rules
-from ai_engine.llm_chain import generate_fast_treatment
+import os
+import sys
+
+# Add ai_engine to path
+sys.path.append(os.path.join(os.getcwd(), 'ai_engine'))
+
+from rule_engine.rule_engine import run_rules
+from llm.llm_chain import generate_treatment_plan as generate_fast_treatment
 
 patient = {
     "cancer_type": "Breast Cancer",

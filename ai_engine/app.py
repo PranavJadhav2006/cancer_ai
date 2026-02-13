@@ -4,6 +4,7 @@ from rule_engine import run_rules
 from llm.llm_chain import generate_treatment_plan, predict_outcomes
 from utils.vcf_parser import parse_vcf
 from utils.formatter import format_multimodal_data # Import the new formatter
+from utils.outcome_engine import engine as outcome_engine # Import the new Outcome Engine
 import re
 import random
 import pdfplumber
@@ -355,6 +356,7 @@ def process_report_text():
     plan_data, evidence = generate_treatment_plan(
         patient=multimodal_summary,
         rules=rules,
+        evidence_levels=rules.get("evidence_levels", []), # New param
         cancer=cancer_type,
         query=query,
         queries=queries
@@ -459,12 +461,13 @@ def recommend_treatment():
     multimodal_summary = format_multimodal_data(patient_data_for_llm)
 
     # Step 2: Run rules engine
-    rules_output = run_rules(patient_data_for_llm, cancer_type)
+    rules = run_rules(patient_data_for_llm, cancer_type)
     
     # Step 3: Generate treatment plan using LLM
     plan_data, evidence = generate_treatment_plan(
         patient=multimodal_summary, # Pass the concise summary instead of the full object
-        rules=rules_output, 
+        rules=rules, 
+        evidence_levels=rules.get("evidence_levels", []),
         cancer=cancer_type, 
         query=patient_query, 
         queries=patient_queries
@@ -488,9 +491,15 @@ def recommend_treatment():
         "recommended": True
     }]
 
-    for i, alt in enumerate(rules_output.get("alternative_options", [])):
+    # Helper to safely join lists that might contain strings or dicts
+    def safe_join(items):
+        if not items: return ""
+        str_items = [i['treatment'] if isinstance(i, dict) else i for i in items]
+        return ", ".join(filter(None, str_items))
+
+    for i, alt in enumerate(rules.get("alternative_options", [])):
         protocols.append({
-            "name": alt,
+            "name": alt['treatment'] if isinstance(alt, dict) else alt,
             "score": round(dynamic_confidence - (i+1)*random.uniform(5, 10), 1),
             "duration": "6-12 months",
             "efficacy": "Moderate",
@@ -532,11 +541,14 @@ def predict_side_effects_route():
         if not cancer_type:
             return jsonify({"error": "No cancer type provided."}), 400
 
+        
+
         patient_data_for_llm = {
             "patientId": data.get('patientId'),
             "cancer_type": cancer_type,
-            "age": age,                        "kps": data.get('kps'),
-                        "stage": data.get('stage'),
+            "age": age, # Use the calculated age
+            "kps": data.get('kps'),
+            "stage": data.get('stage'),
             "genomicProfile": {
                 "ER": data.get('ER'),
                 "PR": data.get('PR'),
@@ -566,37 +578,74 @@ def predict_side_effects_route():
         multimodal_summary = format_multimodal_data(patient_data_for_llm)
 
         # Call LLM with full context
-        outcome_data, evidence = predict_outcomes(
-            patient=multimodal_summary, # Pass the concise summary
-            patient_data_dict=patient_data_for_llm, # Pass the original dict for heuristics
+        # outcome_data, evidence = predict_outcomes(...) <-- REPLACED WITH ENGINE
+
+        # 1. Generate Treatment Plan first (to know which drugs to check for toxicity)
+        rules = run_rules(patient_data_for_llm, cancer_type)
+        plan_data, evidence = generate_treatment_plan(
+            patient=multimodal_summary,
+            rules=rules,
+            evidence_levels=rules.get("evidence_levels", []),
             cancer=cancer_type,
             query=query,
             queries=queries
-        )        # Calculate Dynamic Confidence Score
+        )
+
+        # 2. Extract Drugs from Plan for Toxicity Check
+        # Simple extraction from the primary treatment string
+        primary_tx = plan_data.get("primary_treatment", "")
+        potential_drugs = primary_tx.replace('+', ',').replace('/', ',').split(',')
+        drugs_list = [d.strip() for d in potential_drugs]
+
+        # 3. Run Outcome Engine (Survival + Toxicity)
+        survival_metrics = outcome_engine.predict_survival(patient_data_for_llm)
+        toxicity_metrics = outcome_engine.predict_toxicity(drugs_list, patient_data_for_llm)
+
+        # Calculate Dynamic Confidence Score
         avg_rag_score = sum([e.get('score', 0.5) for e in evidence]) / len(evidence) if evidence else 0.5
         dynamic_confidence = min(99.9, max(75.0, 95.0 - (avg_rag_score * 10)))
 
-        # Map keys to match frontend expectations if necessary
+        # Map keys to match frontend expectations
         formatted_outcome = {
-            "sideEffects": outcome_data["side_effects"],
+            "sideEffects": {
+                "fatigue": toxicity_metrics.get("fatigue", 10),
+                "nausea": toxicity_metrics.get("nausea", 10),
+                "cognitive_impairment": toxicity_metrics.get("cognitive_impairment", 5),
+                "hematologic_toxicity": toxicity_metrics.get("hematologic_toxicity", 5)
+            },
             "overallSurvival": {
-                "median": outcome_data["overall_survival"]["median"],
-                "range": [outcome_data["overall_survival"]["range_min"], outcome_data["overall_survival"]["range_max"]]
+                "median": survival_metrics["median"],
+                "range": [survival_metrics["range_min"], survival_metrics["range_max"]]
             },
             "progressionFreeSurvival": {
-                "median": outcome_data["progression_free_survival"]["median"],
-                "range": [outcome_data["progression_free_survival"]["range_min"], outcome_data["progression_free_survival"]["range_max"]]
+                "median": round(survival_metrics["median"] * 0.6, 1), # Approx PFS/OS ratio
+                "range": [round(survival_metrics["range_min"] * 0.6, 1), round(survival_metrics["range_max"] * 0.6, 1)]
             },
-            "riskStratification": outcome_data.get("risk_stratification", {"low": 25, "moderate": 45, "high": 30}),
-            "prognosticFactors": outcome_data.get("prognostic_factors", {"Age": 65, "KPS": 85, "Biomarkers": 90}),
-            "timelineProjection": outcome_data.get("timeline_projection", {
+            "riskStratification": {
+                "low": 30 if survival_metrics["median"] > 24 else 10,
+                "moderate": 50,
+                "high": 20 if survival_metrics["median"] > 24 else 40
+            },
+            "prognosticFactors": {
+                "Age": 85 if (age is not None and age > 65) else 45,
+                "KPS Score": 90 if data.get('kps', 100) < 70 else 50,
+                "Molecular Profile": 80,
+                "Disease Burden": 70,
+                "Treatment Intent": 60
+            },
+            "timelineProjection": {
                 "months": ["Baseline", "3 mo", "6 mo", "12 mo", "18 mo", "24 mo"],
                 "response_indicator": [100, 40, 35, 45, 55, 65],
-                "quality_of_life": [75, 70, 73, 67, 63, 60]
-            }),
-            "qualityOfLife": outcome_data["quality_of_life"],
+                "quality_of_life": [
+                    80, 
+                    80 - toxicity_metrics.get("fatigue", 10)/2, 
+                    80 - toxicity_metrics.get("nausea", 10)/2, 
+                    75, 70, 65
+                ]
+            },
+            "qualityOfLife": round(80 - (toxicity_metrics.get("fatigue", 0) + toxicity_metrics.get("nausea", 0))/4, 1),
             "evidence": evidence,
-            "confidence": round(dynamic_confidence, 1)
+            "confidence": round(survival_metrics.get("confidence", dynamic_confidence), 1)
         }
 
         return jsonify(formatted_outcome)
