@@ -1,0 +1,76 @@
+{
+  "Temozolomide": {
+    "nausea": 25,
+    "fatigue": 40,
+    "hematologic_toxicity": 15,
+    "cognitive_impairment": 5,
+    "evidence_level": "Level 1 (FDA Approved)"
+  },
+  "Bevacizumab": {
+    "fatigue": 30,
+    "hypertension": 20,
+    "hematologic_toxicity": 10,
+    "nausea": 5,
+    "evidence_level": "Level 2 (Standard of Care)"
+  },
+  "Lomustine": {
+    "hematologic_toxicity": 45,
+    "nausea": 35,
+    "fatigue": 20,
+    "evidence_level": "Level 2"
+  },
+  "Trastuzumab": {
+    "cardiac_toxicity": 10,
+    "fatigue": 15,
+    "nausea": 5,
+    "evidence_level": "Level 1 (FDA Approved)"
+  },
+  "Pertuzumab": {
+    "diarrhea": 30,
+    "fatigue": 20,
+    "cardiac_toxicity": 5,
+    "evidence_level": "Level 1"
+  },
+  "Olaparib": {
+    "anemia": 25,
+    "nausea": 20,
+    "fatigue": 30,
+    "evidence_level": "Level 1"
+  },
+  "T-DM1": {
+    "hematologic_toxicity": 20,
+    "fatigue": 25,
+    "nausea": 10,
+    "evidence_level": "Level 1"
+  },
+  "Paclitaxel": {
+    "neuropathy": 40,
+    "fatigue": 35,
+    "hematologic_toxicity": 30,
+    "evidence_level": "Level 1"
+  },
+  "Osimertinib": {
+    "rash": 25,
+    "diarrhea": 20,
+    "fatigue": 15,
+    "evidence_level": "Level 1"
+  },
+  "Pembrolizumab": {
+    "immunotherapy_rash": 15,
+    "fatigue": 25,
+    "colitis": 5,
+    "evidence_level": "Level 1"
+  },
+  "Sorafenib": {
+    "hand_foot_syndrome": 35,
+    "diarrhea": 25,
+    "fatigue": 30,
+    "evidence_level": "Level 1"
+  },
+  "Gemcitabine": {
+    "hematologic_toxicity": 40,
+    "nausea": 25,
+    "fatigue": 35,
+    "evidence_level": "Level 1"
+  }
+}

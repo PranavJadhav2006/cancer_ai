@@ -1,0 +1,124 @@
+{
+  "Brain": {
+    "baseline_mOS": 14.6,
+    "source": "Stupp et al. (2005)",
+    "hazard_ratios": {
+      "IDH1": {
+        "Mutated": 0.4,
+        "Wild Type": 1.0,
+        "source": "Yan et al. (NEJM)"
+      },
+      "MGMT": {
+        "Methylated": 0.65,
+        "Unmethylated": 1.0,
+        "source": "Hegi et al."
+      },
+      "Age": {
+        ">65": 1.5,
+        "<=65": 1.0
+      },
+      "KPS": {
+        "<70": 1.8,
+        ">=70": 1.0
+      },
+      "Resection": {
+        "GTR": 0.8,
+        "STR": 1.0,
+        "Biopsy": 1.4
+      }
+    }
+  },
+  "Breast": {
+    "baseline_mOS": 36.0,
+    "source": "SEER / Metastatic Baseline",
+    "hazard_ratios": {
+      "Stage": {
+        "I": 0.1,
+        "II": 0.2,
+        "III": 0.5,
+        "IV": 1.0
+      },
+      "Subtype": {
+        "Luminal A": 0.8,
+        "Luminal B": 1.0,
+        "HER2 Positive": 0.6,
+        "Triple Negative": 2.0
+      },
+      "HER2": {
+        "Positive": 0.6,
+        "Negative": 1.0
+      },
+      "BRCA": {
+        "Mutated": 0.85,
+        "Wild Type": 1.0
+      }
+    }
+  },
+  "Lung": {
+    "baseline_mOS": 12.0,
+    "source": "Chemotherapy Era Baseline",
+    "hazard_ratios": {
+      "Stage": {
+        "I": 0.2,
+        "II": 0.4,
+        "III": 0.7,
+        "IV": 1.0
+      },
+      "EGFR": {
+        "Mutated": 0.46,
+        "Wild Type": 1.0,
+        "source": "FLAURA Trial (Osimertinib)"
+      },
+      "ALK": {
+        "Positive": 0.2,
+        "Negative": 1.0,
+        "source": "ALEX Trial (Alectinib)"
+      },
+      "PDL1": {
+        ">=50%": 0.6,
+        "<50%": 1.0,
+        "source": "KEYNOTE-024"
+      }
+    }
+  },
+  "Liver": {
+    "baseline_mOS": 13.0,
+    "source": "IMbrave150 Control Arm",
+    "hazard_ratios": {
+      "AFP": {
+        ">400": 1.8,
+        "<=400": 1.0
+      },
+      "Child-Pugh": {
+        "A": 1.0,
+        "B": 1.8,
+        "C": 3.5
+      },
+      "Stage": {
+        "Early": 0.3,
+        "Intermediate": 0.6,
+        "Advanced": 1.0
+      }
+    }
+  },
+  "Pancreas": {
+    "baseline_mOS": 9.0,
+    "source": "Metastatic Baseline (FOLFIRINOX)",
+    "hazard_ratios": {
+      "Stage": {
+        "Resectable": 0.3,
+        "Borderline": 0.6,
+        "Metastatic": 1.0
+      },
+      "CA19-9": {
+        "Normal": 0.7,
+        "Elevated": 1.5
+      },
+      "BRCA": {
+        "Mutated": 0.6,
+        "Wild Type": 1.0,
+        "source": "POLO Trial (PFS benefit)"
+      }
+    }
+  }
+}
