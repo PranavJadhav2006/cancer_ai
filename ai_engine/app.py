@@ -216,9 +216,13 @@ def process_report_file():
         return jsonify({"error": "Could not determine cancer type from the report and none provided."}), 400
 
     # Run rule engine
-    rules = run_rules(patient_data)
+    cancer_type = patient_data.get('cancer_type')
+    rules = run_rules(patient_data, cancer_type)
     if "error" in rules:
         return jsonify({"error": rules["error"]}), 400
+
+    # Step 1: Format a rich summary from the detailed data
+    multimodal_summary = format_multimodal_data(patient_data)
 
     # Prepare queries for RAG
     cancer_type = patient_data.get("cancer_type", "cancer")
@@ -234,8 +238,9 @@ def process_report_file():
 
     # Call LLM with full context
     plan_data, evidence = generate_treatment_plan(
-        patient=patient_data, 
+        patient=multimodal_summary, 
         rules=rules,
+        evidence_levels=rules.get("evidence_levels", []), # New param
         cancer=cancer_type,
         query=query,
         queries=queries
@@ -260,7 +265,7 @@ def process_report_file():
     }]
 
     # Add alternatives from Rule Engine
-    for i, alt in enumerate(rules_output.get("alternative_options", [])):
+    for i, alt in enumerate(rules.get("alternative_options", [])):
         protocols.append({
             "name": alt,
             "score": round(dynamic_confidence - (i+1)*random.uniform(5, 10), 1),
@@ -328,9 +333,13 @@ def process_report_text():
         return jsonify({"error": "Could not determine cancer type from the report and none provided."}), 400
 
     # Run rule engine
-    rules = run_rules(patient_data)
+    cancer_type = patient_data.get('cancer_type')
+    rules = run_rules(patient_data, cancer_type)
     if "error" in rules:
         return jsonify({"error": rules["error"]}), 400
+
+    # Step 1: Format a rich summary from the detailed data
+    multimodal_summary = format_multimodal_data(patient_data)
 
     # Prepare queries
     cancer_type = patient_data.get("cancer_type", "cancer")
@@ -344,7 +353,7 @@ def process_report_text():
 
     # Call LLM with full context
     plan_data, evidence = generate_treatment_plan(
-        patient=patient_data,
+        patient=multimodal_summary,
         rules=rules,
         cancer=cancer_type,
         query=query,
@@ -369,7 +378,7 @@ def process_report_text():
         "recommended": True
     }]
 
-    for i, alt in enumerate(rules_output.get("alternative_options", [])):
+    for i, alt in enumerate(rules.get("alternative_options", [])):
         protocols.append({
             "name": alt,
             "score": round(dynamic_confidence - (i+1)*random.uniform(5, 10), 1),
@@ -399,9 +408,12 @@ def process_report_text():
 def recommend_treatment():
     data = request.get_json()
     patient_id = data.get('patientId')
-    cancer_type = data.get('cancerType')
+    cancer_type = data.get('cancerType') or data.get('cancer_type')
     patient_query = data.get('query', '')
     patient_queries = data.get('queries', [])
+
+    if not cancer_type:
+        return jsonify({"error": "No cancer type provided."}), 400
 
     # Calculate age from DOB if age is not directly provided
     age = data.get('age')
@@ -516,9 +528,13 @@ def predict_side_effects_route():
                 print(f"Warning: Could not calculate age from DOB: {e}")
                 age = None # Fallback if DOB parsing fails
         
+        cancer_type = data.get('cancerType') or data.get('cancer_type')
+        if not cancer_type:
+            return jsonify({"error": "No cancer type provided."}), 400
+
         patient_data_for_llm = {
             "patientId": data.get('patientId'),
-            "cancer_type": data.get('cancerType'),
+            "cancer_type": cancer_type,
             "age": age,                        "kps": data.get('kps'),
                         "stage": data.get('stage'),
             "genomicProfile": {

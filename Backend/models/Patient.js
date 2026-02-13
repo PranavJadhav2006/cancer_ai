@@ -116,8 +116,8 @@ const Patient = sequelize.define('Patient', {
     }
 }, {
     hooks: {
-        // ──── Encrypt sensitive fields before saving to database ────────────
-        beforeCreate: (patient) => {
+        // ──── Encrypt sensitive fields before validation ───────────────────
+        beforeValidate: (patient) => {
             try {
                 for (const field of ENCRYPTED_STRING_FIELDS) {
                     if (patient[field]) {
@@ -130,26 +130,7 @@ const Patient = sequelize.define('Patient', {
                     }
                 }
             } catch (err) {
-                console.error('Encryption error on create:', err.message);
-            }
-        },
-        beforeUpdate: (patient) => {
-            try {
-                for (const field of ENCRYPTED_STRING_FIELDS) {
-                    if (patient.changed(field) && patient[field]) {
-                        patient[field] = encryptField(patient[field]);
-                    }
-                }
-                for (const field of ENCRYPTED_JSON_FIELDS) {
-                    if (patient.changed(field) && patient[field]) {
-                        const val = patient[field];
-                        if (typeof val === 'object') {
-                            patient[field] = encryptField(val);
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error('Encryption error on update:', err.message);
+                console.error('Encryption error during validation:', err.message);
             }
         },
         // ──── Decrypt sensitive fields after reading from database ──────────

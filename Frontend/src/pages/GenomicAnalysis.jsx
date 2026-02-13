@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { Chart as ChartJS, RadialLinearScale, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip as ChartTooltip, Legend, Filler } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import BiotechIcon from '@mui/icons-material/Biotech';
@@ -198,10 +198,7 @@ const GenomicAnalysis = () => {
 
   const fetchPatientData = async (pid) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:8000/api/patients/${pid}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiClient.get(`/patients/${pid}`);
       if (res.data.success) {
         const p = res.data.data;
         setPatientData(p);

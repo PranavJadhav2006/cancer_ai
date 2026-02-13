@@ -70,9 +70,6 @@ app.use(helmet({
     }
 }));
 
-// 3. Rate limiting (general)
-app.use('/api/', generalLimiter);
-
 // 4. Security event logger
 app.use(securityLogger);
 
@@ -98,9 +95,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Route Mounting ──────────────────────────────────────────────────────────
 
-// Auth routes with stricter rate limiting
-app.use('/api/auth', authLimiter, require('./routes/auth'));
-app.use('/api/face-auth', authLimiter, require('./routes/faceAuth'));
+// Auth routes without rate limiting
+app.use('/api/auth', require('./routes/auth'));
 
 // Protected data routes
 app.use('/api/patients', require('./routes/patients'));

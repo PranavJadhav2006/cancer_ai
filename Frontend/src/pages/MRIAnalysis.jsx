@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { 
   Box, Grid, Typography, Button, Slider, IconButton, Tooltip, LinearProgress 
 } from '@mui/material';
@@ -12,6 +11,7 @@ import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 import GradientIcon from '@mui/icons-material/Gradient'; 
 import { Chart as ChartJS, RadialLinearScale, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip as ChartTooltip, Legend, Filler } from 'chart.js';
 import { Radar, Bar, Line } from 'react-chartjs-2';
+import apiClient from '../utils/apiClient';
 import './MRIAnalysis.css';
 
 ChartJS.register(RadialLinearScale, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, ChartTooltip, Legend, Filler);
@@ -57,22 +57,22 @@ const MRIViewer = ({ analysisId, sequence, setSequence, slice, setSlice, viewPla
           if (!analysisId || loading) return;
           setImageLoading(true); // Start loading
           try {
-              const token = localStorage.getItem('token');
-              const headers = { Authorization: `Bearer ${token}` };
-              
               // Determine modality for source image based on sequence selection
               // Map UI sequence names to backend query params
               let modalityParam = '';
-              if (sequence === 'T1') modalityParam = '&modality=t1';
-              else if (sequence === 'T1ce') modalityParam = '&modality=t1ce';
-              else if (sequence === 'T2') modalityParam = '&modality=t2';
-              else if (sequence === 'FLAIR') modalityParam = '&modality=flair';
+              if (sequence === 'T1') modalityParam = '?modality=t1';
+              else if (sequence === 'T1ce') modalityParam = '?modality=t1ce';
+              else if (sequence === 'T2') modalityParam = '?modality=t2';
+              else if (sequence === 'FLAIR') modalityParam = '?modality=flair';
+
+              // Build query params
+              const buildUrl = (type, extra = '') => `/analyses/${analysisId}/slice/${slice}?type=${type}&plane=${viewPlane}${extra}`;
 
               // Parallel fetch for speed
               const [sourceRes, maskRes, heatmapRes] = await Promise.all([
-                  axios.get(`http://localhost:8000/api/analyses/${analysisId}/slice/${slice}?type=source&plane=${viewPlane}${modalityParam}`, { headers }),
-                  axios.get(`http://localhost:8000/api/analyses/${analysisId}/slice/${slice}?type=mask&plane=${viewPlane}`, { headers }),
-                  axios.get(`http://localhost:8000/api/analyses/${analysisId}/slice/${slice}?type=heatmap&plane=${viewPlane}`, { headers })
+                  apiClient.get(buildUrl('source', modalityParam.replace('?', '&'))),
+                  apiClient.get(buildUrl('mask')),
+                  apiClient.get(buildUrl('heatmap'))
               ]);
 
               setImages({
@@ -369,12 +369,7 @@ const MRIAnalysis = () => {
 
   const fetchPatientData = async (id) => {
       try {
-          const token = localStorage.getItem('token');
-          if (!token) return;
-
-          const res = await axios.get(`http://localhost:8000/api/patients/${id}`, {
-              headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await apiClient.get(`/patients/${id}`);
 
           if (res.data.success) {
               const type = res.data.data.cancerType;
@@ -387,12 +382,7 @@ const MRIAnalysis = () => {
 
   const fetchLatestAnalysis = async (id) => {
       try {
-          const token = localStorage.getItem('token');
-          if (!token) return;
-
-          const res = await axios.get(`http://localhost:8000/api/analyses/patient/${id}`, {
-              headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await apiClient.get(`/analyses/patient/${id}`);
 
           if (res.data.success && res.data.data.length > 0) {
               const latest = res.data.data[0];
@@ -451,22 +441,13 @@ const MRIAnalysis = () => {
   const handleRunAnalysis = async () => {
     setLoading(true);
     try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            alert("Authentication token missing. Please login.");
-            navigate('/login');
-            return;
-        }
-
         // 1. Create Analysis Record
-        const createRes = await axios.post('http://localhost:8000/api/analyses', {
+        const createRes = await apiClient.post('/analyses', {
             patientId: patientId, // Link analysis to patient
             analysisType: 'mri',
             status: 'pending',
             notes: `MRI Segmentation for ${model} cancer`,
             data: { model: model, sequence: sequence, slice: slice }
-        }, {
-            headers: { Authorization: `Bearer ${token}` }
         });
 
         if (!createRes.data.success) throw new Error("Failed to create analysis record");
@@ -476,9 +457,7 @@ const MRIAnalysis = () => {
         console.log("Analysis created:", analysisId);
 
         // 2. Trigger Segmentation Process
-        const processRes = await axios.post(`http://localhost:8000/api/analyses/${analysisId}/process`, {}, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        const processRes = await apiClient.post(`/analyses/${analysisId}/process`, {});
 
         if (processRes.data.success) {
              console.log("Segmentation result:", processRes.data);

@@ -34,10 +34,6 @@ const User = sequelize.define('User', {
     role: {
         type: DataTypes.ENUM('oncologist', 'patient', 'researcher', 'admin'),
         defaultValue: 'oncologist'
-    },
-    faceDescriptors: {
-        type: DataTypes.TEXT, // Changed to TEXT for encrypted JSON storage
-        allowNull: true
     }
 }, {
     hooks: {
@@ -46,34 +42,6 @@ const User = sequelize.define('User', {
             if (user.changed('password')) {
                 const salt = await bcrypt.genSalt(10);
                 user.password = await bcrypt.hash(user.password, salt);
-            }
-            // Encrypt face descriptors (biometric data) if changed
-            if (user.changed('faceDescriptors') && user.faceDescriptors) {
-                if (typeof user.faceDescriptors === 'object') {
-                    user.faceDescriptors = encryptField(user.faceDescriptors);
-                }
-            }
-        },
-        // Decrypt face descriptors after reading from database
-        afterFind: (result) => {
-            try {
-                const decryptUser = (user) => {
-                    if (!user || !user.dataValues) return;
-                    if (user.dataValues.faceDescriptors) {
-                        user.dataValues.faceDescriptors = decryptField(
-                            user.dataValues.faceDescriptors,
-                            true
-                        );
-                    }
-                };
-
-                if (Array.isArray(result)) {
-                    result.forEach(decryptUser);
-                } else if (result) {
-                    decryptUser(result);
-                }
-            } catch (err) {
-                console.error('User decryption error:', err.message);
             }
         }
     }

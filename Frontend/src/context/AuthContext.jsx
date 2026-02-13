@@ -84,14 +84,6 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  // Function to manually set auth state after face login
-  const setAuthData = (data) => {
-    const { token, ...profile } = data;
-    localStorage.setItem('token', encryptForStorage(token));
-    setAuthToken(token);
-    setUser(profile);
-  };
-
   const value = {
     user,
     loading,
@@ -99,7 +91,6 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    setAuthData,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isDoctor: user?.role === 'oncologist',

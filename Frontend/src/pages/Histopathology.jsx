@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { 
   Box, Container, Typography, Button, IconButton, LinearProgress, Grid, Chip, Divider
 } from '@mui/material';
@@ -13,6 +12,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LinkIcon from '@mui/icons-material/Link';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 import Navbar from '../components/Navbar';
+import apiClient from '../utils/apiClient';
 import './Histopathology.css';
 
 // --- SUB-COMPONENTS FOR EXTRACTION MATRIX ---
@@ -169,13 +169,9 @@ function Histopathology() {
   const fetchAndAnalyzeReport = async (pid, forceRefresh = false) => {
       setUploading(true);
       try {
-          const token = localStorage.getItem('token');
-          
           if (!forceRefresh) {
             // 1. First fetch the patient to check if they already have analysis data
-            const patientRes = await axios.get(`http://localhost:8000/api/patients/${pid}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const patientRes = await apiClient.get(`/patients/${pid}`);
 
             if (patientRes.data.success) {
                 const p = patientRes.data.data;
@@ -190,9 +186,7 @@ function Histopathology() {
           }
 
           // 2. If no analysis or forceRefresh, then run the engine
-          const response = await axios.post(`http://localhost:8000/api/patients/${pid}/analyze-pathology`, { forceRefresh }, {
-              headers: { Authorization: `Bearer ${token}` }
-          });
+          const response = await apiClient.post(`/patients/${pid}/analyze-pathology`, { forceRefresh });
           if (response.data.success) {
               setAnalysisResult(response.data);
           }
@@ -217,7 +211,7 @@ function Histopathology() {
     formData.append('histopathology_pdf', selectedFile);
     setUploading(true);
     try {
-      const response = await axios.post('http://localhost:8000/api/uploads/histopathology', formData, {
+      const response = await apiClient.post('/uploads/histopathology', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setAnalysisResult(response.data);

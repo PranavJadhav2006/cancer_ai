@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
@@ -17,6 +17,7 @@ import LayersIcon from '@mui/icons-material/Layers';
 import BiotechIcon from '@mui/icons-material/Biotech';
 import OpacityIcon from '@mui/icons-material/Opacity';
 import { useAuth } from '../context/AuthContext';
+import { decryptFromStorage } from '../utils/encryption';
 import './Tumor3DPage.css';
 
 // --- THEME CONSTANTS ---
@@ -133,7 +134,9 @@ const ThreeDViewport = ({ volume, location, analysisId, layers, brainOpacity, se
   const getModelUrl = () => {
     const pid = analysisId || 'test';
     const name = analysisId ? 'tumor_with_brain.glb' : 'tumor_with_brain_new1.glb';
-    return `http://localhost:8000/api/analyses/${pid}/model?modelName=${name}&token=${localStorage.getItem('token')}`;
+    const storedToken = localStorage.getItem('token');
+    const token = storedToken ? decryptFromStorage(storedToken) : '';
+    return `http://localhost:8000/api/analyses/${pid}/model?modelName=${name}&token=${token}`;
   };
 
   const modelUrl = getModelUrl();
@@ -247,10 +250,9 @@ const Tumor3DPage = () => {
 
   const fetchPatientAndAnalysis = async (pid) => {
     try {
-      const token = localStorage.getItem('token');
       const [pRes, aRes] = await Promise.all([
-        axios.get(`http://localhost:8000/api/patients/${pid}`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`http://localhost:8000/api/analyses/patient/${pid}`, { headers: { Authorization: `Bearer ${token}` } })
+        apiClient.get(`/patients/${pid}`),
+        apiClient.get(`/analyses/patient/${pid}`)
       ]);
 
       if (pRes.data.success) setPatientData(pRes.data.data);

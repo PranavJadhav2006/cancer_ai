@@ -66,13 +66,28 @@ def parse_vcf(file_path):
                 af_match = re.search(r"AF=([0-9.]+)", info)
                 af = float(af_match.group(1)) if af_match else 1.0
 
+                # Advanced Hackathon-Level Significance Logic
+                if af > 0.4:
+                    significance = "Pathogenic (Clonal)"
+                    evidence_tier = "Tier 1"
+                elif af > 0.15:
+                    significance = "Pathogenic (Subclonal)"
+                    evidence_tier = "Tier 2"
+                elif af > 0.05:
+                    significance = "VUS (Low Frequency)"
+                    evidence_tier = "Tier 3"
+                else:
+                    significance = "Variant of Unknown Significance"
+                    evidence_tier = "Tier 4"
+
                 found_markers[marker_id] = {
                     "gene": hotspot['gene'],
                     "value": hotspot['value'],
                     "coordinate": key,
                     "ref_alt": f"{ref}>{alt}",
                     "allele_freq": af,
-                    "significance": "Pathogenic" if af > 0.2 else "VUS (Low Frequency)"
+                    "significance": significance,
+                    "evidence_tier": evidence_tier
                 }
                 analyzed_variants += 1
 
@@ -82,9 +97,11 @@ def parse_vcf(file_path):
             "stats": {
                 "total_vcf_rows": total_variants,
                 "actionable_found": len(found_markers),
-                "high_impact": sum(1 for marker in found_markers.values() if marker["significance"] == "Pathogenic"),
-                "med_impact": sum(1 for marker in found_markers.values() if marker["significance"] == "VUS (Low Frequency)"),
-                "low_impact": total_variants - len(found_markers)
+                "tier_1_clonal": sum(1 for m in found_markers.values() if m["evidence_tier"] == "Tier 1"),
+                "tier_2_subclonal": sum(1 for m in found_markers.values() if m["evidence_tier"] == "Tier 2"),
+                "tier_3_vus": sum(1 for m in found_markers.values() if m["evidence_tier"] == "Tier 3"),
+                "uncertain_variants": sum(1 for m in found_markers.values() if m["evidence_tier"] == "Tier 4"),
+                "unfiltered_variants": total_variants - len(found_markers)
             }
         }
 

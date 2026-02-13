@@ -7,7 +7,7 @@ import {
   InputAdornment
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -43,8 +43,8 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/admin/users');
-      setUsers(res.data.data);
+      const res = await apiClient.get('/admin/users');
+      setUsers(Array.isArray(res.data.data) ? res.data.data : []);
       setError(null);
     } catch (err) {
       setError('Failed to fetch users. Ensure you have admin privileges.');
@@ -75,9 +75,9 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       if (editMode) {
-        await axios.put(`/admin/users/${currentUser.id}`, currentUser);
+        await apiClient.put(`/admin/users/${currentUser.id}`, currentUser);
       } else {
-        await axios.post('/admin/users', currentUser);
+        await apiClient.post('/admin/users', currentUser);
       }
       fetchUsers();
       handleClose();
@@ -89,7 +89,7 @@ const AdminDashboard = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await axios.delete(`/admin/users/${id}`);
+        await apiClient.delete(`/admin/users/${id}`);
         fetchUsers();
       } catch (err) {
         setError('Failed to delete user');

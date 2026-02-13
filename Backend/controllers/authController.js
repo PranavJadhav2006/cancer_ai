@@ -142,8 +142,7 @@ exports.checkUserRole = async (req, res) => {
             success: true,
             data: {
                 id: user.id, // Include user ID
-                role: user.role,
-                hasFaceLogin: user.faceDescriptors && user.faceDescriptors.length > 0
+                role: user.role
             }
         });
     } catch (error) {

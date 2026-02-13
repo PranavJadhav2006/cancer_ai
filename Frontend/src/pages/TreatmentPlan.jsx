@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { 
   Box, Typography, Button
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
+import apiClient from '../utils/apiClient';
 import './TreatmentPlan.css';
 import {
   Chart as ChartJS,
@@ -109,21 +109,8 @@ function TreatmentPlan() {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/treatments/generate-formatted', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(fullPatientData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const response = await apiClient.post('/treatments/generate-formatted', fullPatientData);
+      const result = response.data;
       if (!result.success) throw new Error(result.message || 'Failed to generate plan');
 
       const { rawPlan, formattedEvidence } = result.data;
@@ -153,10 +140,7 @@ function TreatmentPlan() {
     if (pid) {
         const fetchPatient = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get(`http://localhost:8000/api/patients/${pid}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await apiClient.get(`/patients/${pid}`);
                 
                 if (res.data.success) {
                     const p = res.data.data;

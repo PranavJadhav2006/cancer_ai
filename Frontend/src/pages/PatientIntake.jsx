@@ -5,6 +5,7 @@ import {
   Box, Grid, Typography, TextField, Button, InputAdornment, IconButton, LinearProgress, Slider, Chip, Divider
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
+import apiClient from '../utils/apiClient';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import MaleIcon from '@mui/icons-material/Male';
@@ -324,17 +325,15 @@ const PatientIntake = () => {
     formDataUpload.append('histopathology_pdf', file);
 
     try {
-      const token = localStorage.getItem('token');
       // 1. Upload the file to get a server path
-      const uploadRes = await axios.post('http://localhost:8000/api/uploads/histopathology', formDataUpload, {
+      const uploadRes = await apiClient.post('/uploads/histopathology', formDataUpload, {
         headers: { 
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}` 
+          'Content-Type': 'multipart/form-data'
         }
       });
 
       if (uploadRes.data.filename) {
-        // 2. Call AI Engine to extract data
+        // 2. Call AI Engine to extract data (Direct axios for external port 5000)
         const aiRes = await axios.post('http://localhost:5000/process_report_file', {
           file_path: `../Backend/uploads/reports/${uploadRes.data.filename}`
         });
@@ -392,17 +391,15 @@ const PatientIntake = () => {
     formDataUpload.append('vcf_file', file);
 
     try {
-      const token = localStorage.getItem('token');
       // 1. Upload the file to get a server path
-      const uploadRes = await axios.post('http://localhost:8000/api/uploads/vcf', formDataUpload, {
+      const uploadRes = await apiClient.post('/uploads/vcf', formDataUpload, {
         headers: { 
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}` 
+          'Content-Type': 'multipart/form-data'
         }
       });
 
       if (uploadRes.data.filename) {
-        // 2. Call AI Engine to process VCF data
+        // 2. Call AI Engine to process VCF data (Direct axios for external port 5000)
         const aiRes = await axios.post('http://localhost:5000/process_vcf', {
           file_path: `../Backend/uploads/genomics/${uploadRes.data.filename}` // Adjust path as needed
         });
@@ -440,13 +437,6 @@ const PatientIntake = () => {
   const handleCompleteIntake = async () => {
     setLoading(true);
     try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            alert("Authentication required. Please login.");
-            navigate('/login');
-            return;
-        }
-
         let reportPath = null;
         let mriPaths = {};
 
@@ -456,10 +446,9 @@ const PatientIntake = () => {
             reportData.append('histopathology_pdf', formData.pathologyFile);
             
             try {
-                const uploadRes = await axios.post('http://localhost:8000/api/uploads/histopathology', reportData, {
+                const uploadRes = await apiClient.post('/uploads/histopathology', reportData, {
                     headers: { 
-                        'Content-Type': 'multipart/form-data',
-                        Authorization: `Bearer ${token}` 
+                        'Content-Type': 'multipart/form-data'
                     }
                 });
                 if (uploadRes.data.filename) {
@@ -488,10 +477,9 @@ const PatientIntake = () => {
             });
 
             try {
-                const mriUploadRes = await axios.post('http://localhost:8000/api/uploads/mri', mriData, {
+                const mriUploadRes = await apiClient.post('/uploads/mri', mriData, {
                     headers: {
-                        'Content-Type': 'multipart/form-data',
-                        Authorization: `Bearer ${token}`
+                        'Content-Type': 'multipart/form-data'
                     }
                 });
                 
@@ -510,9 +498,7 @@ const PatientIntake = () => {
         delete payload.pathologyFile; // Remove file object
         delete payload.vcfFile; // Remove file object
 
-        const response = await axios.post('http://localhost:8000/api/patients', payload, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await apiClient.post('/patients', payload);
 
         if (response.data.success) {
             const patientId = response.data.data.id;

@@ -20,7 +20,7 @@ const ENCRYPT_REQUEST_ENDPOINTS = [
 // Create configured axios instance
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 30000,
+    timeout: 300000, // 5 minutes
     headers: {
         'Content-Type': 'application/json'
     }

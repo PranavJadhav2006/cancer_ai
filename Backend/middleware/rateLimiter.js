@@ -1,18 +1,17 @@
 const rateLimit = require('express-rate-limit');
 
-// ─── Rate Limiting Middleware ────────────────────────────────────────────────
-// Protects against brute-force attacks and API abuse.
+// ─── Rate Limiting Middleware (DISABLED) ──────────────────────────────────────
+// Limits have been effectively removed by setting them to a very high value.
 
 /**
  * General API rate limiter.
- * 100 requests per 15 minutes per IP.
  */
 const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
+    windowMs: 15 * 60 * 1000, 
+    max: 1000000, // Effectively disabled
     message: {
         success: false,
-        message: 'Too many requests from this IP, please try again after 15 minutes'
+        message: 'Too many requests from this IP'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -20,29 +19,27 @@ const generalLimiter = rateLimit({
 
 /**
  * Auth-specific rate limiter (login/register).
- * 5 requests per 15 minutes per IP — brute-force protection.
  */
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5,
+    windowMs: 15 * 60 * 1000, 
+    max: 1000000, // Effectively disabled
     message: {
         success: false,
-        message: 'Too many authentication attempts, please try again after 15 minutes'
+        message: 'Too many authentication attempts'
     },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
 /**
- * Sensitive operations rate limiter (data exports, admin actions).
- * 20 requests per 15 minutes per IP.
+ * Sensitive operations rate limiter.
  */
 const sensitiveLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20,
+    max: 1000000, // Effectively disabled
     message: {
         success: false,
-        message: 'Too many sensitive requests, please try again later'
+        message: 'Too many sensitive requests'
     },
     standardHeaders: true,
     legacyHeaders: false,

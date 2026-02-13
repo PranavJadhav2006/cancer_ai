@@ -96,9 +96,14 @@ def flatten_rule_output(rules):
     
 
 
-def generate_treatment_plan(patient, rules, cancer, query, queries):
+def generate_treatment_plan(patient, rules, evidence_levels, cancer, query, queries):
     rule_text = flatten_rule_output(rules)
     
+    # Format evidence levels for prompt
+    levels_text = ""
+    if evidence_levels:
+        levels_text = "\nEVIDENCE TAGS:\n" + "\n".join([f"- {el['treatment']}: {el['level']}" for el in evidence_levels])
+
     # RAG evidence
     evidence = hybrid_retrieve(cancer, query, queries)
     evidence_text = "\n".join([f"[{i+1}] {e['text']}" for i, e in enumerate(evidence)])
@@ -116,6 +121,9 @@ Expected JSON structure:
   "follow_up": "..."
 }}
 
+Use the EVIDENCE TAGS below to justify the "clinical_rationale". 
+Mention specific evidence levels (e.g., "Level 1 FDA Approved") in the rationale.
+
 Do NOT add new drugs.
 Do NOT invent treatments.
 Do NOT hallucinate.
@@ -126,6 +134,7 @@ PATIENT:
 
 CLINICAL NOTES:
 {rule_text}
+{levels_text}
 
 SUPPORTING EVIDENCE:
 {evidence_text}

@@ -35,10 +35,10 @@ def run_rules(patient, cancer_type):
             stage = "I"
         
     # 2. Extract History & Performance
-    kps = int(patient.get("kps", 100))
-    ecog = int(patient.get("ecog", 0))
-    comorbidities = str(patient.get("comorbidities", "")).lower()
-    age = int(patient.get("age", 50))
+    kps = int(patient.get("kps") if patient.get("kps") is not None else 100)
+    ecog = int(patient.get("ecog") if patient.get("ecog") is not None else 0)
+    comorbidities = str(patient.get("comorbidities") or "").lower()
+    age = int(patient.get("age") if patient.get("age") is not None else 50)
 
     residual = str(patient.get("residual", "")).lower()
     brca = str(patient.get("BRCA", "")).lower()
@@ -58,20 +58,36 @@ def run_rules(patient, cancer_type):
 
     data = stages[stage]
 
+    # Helper to extract names from potentially complex KB structure
+    def get_names(items):
+        if not items: return []
+        return [i["treatment"] if isinstance(i, dict) else i for i in items]
+
     result = {
-        "primary_treatments": data.get("primary_treatments", []),
-        "surgery": data.get("surgery", []),
-        "radiation": data.get("radiation", []),
-        "systemic": data.get("systemic", []),
-        "targeted": data.get("targeted", {}),
-        "immunotherapy": data.get("immunotherapy", []),
+        "primary_treatments": get_names(data.get("primary_treatments", [])),
+        "surgery": get_names(data.get("surgery", [])),
+        "radiation": get_names(data.get("radiation", [])),
+        "systemic": get_names(data.get("systemic", [])),
+        "targeted": get_names(data.get("targeted", [])),
+        "immunotherapy": get_names(data.get("immunotherapy", [])),
         "alternative_options": data.get("alternatives", []),
         "follow_up": data.get("follow_up", []),
         "contraindications": [],
         "warnings": [],
+        "evidence_levels": [], # To be populated
         "performance_adjustment": f"Protocol optimized for {cancer.capitalize()} {stage.capitalize()} based on standard of care guidelines.",
         "evidence": KB["common"]["evidence"]
     }
+
+    # Collect Evidence Levels
+    for cat in ["primary_treatments", "surgery", "radiation", "systemic", "targeted", "immunotherapy"]:
+        items = data.get(cat, [])
+        for item in items:
+            if isinstance(item, dict) and "evidence" in item:
+                result["evidence_levels"].append({
+                    "treatment": item["treatment"],
+                    "level": item["evidence"]
+                })
 
     # 3. PERFORMANCE STATUS ADJUSTMENTS
     if kps < 70 or ecog >= 2:

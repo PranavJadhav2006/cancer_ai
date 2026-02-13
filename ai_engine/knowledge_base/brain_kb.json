@@ -1,20 +1,45 @@
 {
   "stages": {
     "LOCALIZED": {
-      "primary_treatments": ["Stupp Protocol (Resection + RT + Temozolomide)"],
-      "surgery": ["Maximal safe resection"],
-      "radiation": ["60 Gy fractionated radiotherapy"],
-      "systemic": ["Temozolomide concurrent + adjuvant"],
-      "mgmt": ["Prolonged benefit if MGMT methylated"],
-      "alternatives": ["Tumor Treating Fields (TTFields)", "Clinical Trial Participation"],
+      "primary_treatments": [
+        {"treatment": "Stupp Protocol (Resection + RT + Temozolomide)", "evidence": "Level 1 (Standard of Care)"}
+      ],
+      "surgery": [
+        {"treatment": "Maximal safe resection", "evidence": "Level 1"}
+      ],
+      "radiation": [
+        {"treatment": "60 Gy fractionated radiotherapy", "evidence": "Level 1"}
+      ],
+      "systemic": [
+        {"treatment": "Temozolomide concurrent + adjuvant", "evidence": "Level 1"}
+      ],
+      "mgmt": [
+        {"treatment": "Prolonged benefit if MGMT methylated", "evidence": "Level 1"}
+      ],
+      "alternatives": [
+        {"treatment": "Tumor Treating Fields (TTFields)", "evidence": "Level 1 (FDA Approved)"}, 
+        "Clinical Trial Participation"
+      ],
       "follow_up": ["MRI q2-3m"]
     },
     "RECURRENT": {
-      "primary_treatments": ["Salvage Systemic Therapy (Bevacizumab)"],
-      "systemic": ["Bevacizumab"],
-      "surgery": ["Re-resection if feasible"],
-      "radiation": ["Re-irradiation selectively"],
-      "alternatives": ["Lomustine", "Regorafenib", "Clinical Trial"],
+      "primary_treatments": [
+        {"treatment": "Salvage Systemic Therapy (Bevacizumab)", "evidence": "Level 2 (Strong Evidence)"}
+      ],
+      "systemic": [
+        {"treatment": "Bevacizumab", "evidence": "Level 2"}
+      ],
+      "surgery": [
+        {"treatment": "Re-resection if feasible", "evidence": "Level 3 (Expert Opinion)"}
+      ],
+      "radiation": [
+        {"treatment": "Re-irradiation selectively", "evidence": "Level 3"}
+      ],
+      "alternatives": [
+        {"treatment": "Lomustine", "evidence": "Level 2"},
+        {"treatment": "Regorafenib", "evidence": "Level 2"},
+        "Clinical Trial"
+      ],
       "follow_up": ["MRI q8-12w"]
     }
   }

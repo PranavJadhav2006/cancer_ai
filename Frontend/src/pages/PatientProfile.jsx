@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import BadgeIcon from '@mui/icons-material/Badge';
 import PhoneIcon from '@mui/icons-material/Phone';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -116,10 +116,7 @@ const PatientProfile = () => {
     if (pid) {
         const fetchPatient = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get(`http://localhost:8000/api/patients/${pid}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await apiClient.get(`/patients/${pid}`);
                 if (res.data.success) {
                     setPatient(res.data.data);
                 }

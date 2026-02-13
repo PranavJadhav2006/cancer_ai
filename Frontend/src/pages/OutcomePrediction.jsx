@@ -47,7 +47,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { useAuth } from '../context/AuthContext';
 
 
@@ -292,15 +292,11 @@ function OutcomePrediction() {
         setFormattedSideEffects('');
     }
     try {
-      const token = localStorage.getItem('token');
-      
       const params = new URLSearchParams(location.search);
       const pid = params.get('patientId');
 
       const payload = customData || { ...formData, patientId: pid, forceRefresh };
-      const response = await axios.post('http://localhost:8000/api/outcomes/predict-formatted', payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiClient.post('/outcomes/predict-formatted', payload);
       
       const resData = response.data.data;
       setOutcomeData(resData);
@@ -320,10 +316,7 @@ function OutcomePrediction() {
     if (pid) {
         const fetchPatient = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get(`http://localhost:8000/api/patients/${pid}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await apiClient.get(`/patients/${pid}`);
                 
                 if (res.data.success) {
                     const p = res.data.data;

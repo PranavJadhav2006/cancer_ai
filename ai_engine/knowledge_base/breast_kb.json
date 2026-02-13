@@ -1,41 +1,81 @@
 {
   "stages": {
     "0": {
-      "primary_treatments": ["Breast-conserving surgery", "Radiation"],
+      "primary_treatments": [
+        {"treatment": "Breast-conserving surgery", "evidence": "Level 1 (Standard of Care)"},
+        {"treatment": "Radiation", "evidence": "Level 1 (Standard of Care)"}
+      ],
       "systemic": ["Endocrine therapy if ER/PR positive"],
       "alternatives": ["Mastectomy without radiation", "Clinical Trial"],
       "notes": "DCIS management focuses on local control"
     },
     "I": {
-      "primary_treatments": ["TH (Paclitaxel + Trastuzumab) if HER2+", "Endocrine therapy if ER/PR+"],
-      "targeted": ["Trastuzumab if HER2+"],
+      "primary_treatments": [
+        {"treatment": "TH (Paclitaxel + Trastuzumab) if HER2+", "evidence": "Level 1 (FDA Approved)"},
+        {"treatment": "Endocrine therapy if ER/PR+", "evidence": "Level 1 (ASCO Guidelines)"}
+      ],
+      "targeted": [
+        {"treatment": "Trastuzumab if HER2+", "evidence": "Level 1 (Standard of Care)"}
+      ],
       "immunotherapy": [],
-      "brca": ["Consider Olaparib in high-risk BRCA+"],
+      "brca": [
+        {"treatment": "Consider Olaparib in high-risk BRCA+", "evidence": "Level 2 (Strong Evidence)"}
+      ],
       "alternatives": ["AC-T (Adriamycin/Cyclophosphamide followed by Taxol)", "Clinical Trial"],
       "follow_up": ["Exam every 6-12m for 5y", "Annual mammogram"]
     },
     "II": {
-      "primary_treatments": ["TCHP (Docetaxel + Carboplatin + Trastuzumab + Pertuzumab)"],
-      "targeted": ["Trastuzumab 1y", "Pertuzumab optional"],
-      "residual": ["Switch to T-DM1 if residual disease"],
-      "brca": ["Olaparib 1y if BRCA+ high-risk"],
+      "primary_treatments": [
+        {"treatment": "TCHP (Docetaxel + Carboplatin + Trastuzumab + Pertuzumab)", "evidence": "Level 1 (NCCN Category 1)"}
+      ],
+      "targeted": [
+        {"treatment": "Trastuzumab 1y", "evidence": "Level 1"},
+        {"treatment": "Pertuzumab optional", "evidence": "Level 1"}
+      ],
+      "residual": [
+        {"treatment": "Switch to T-DM1 if residual disease", "evidence": "Level 1 (KATHERINE Trial)"}
+      ],
+      "brca": [
+        {"treatment": "Olaparib 1y if BRCA+ high-risk", "evidence": "Level 1 (OlympiAD Trial)"}
+      ],
       "alternatives": ["AC-T with HER2 blockade", "Clinical Trial"],
       "follow_up": ["Exam q 3-6m for 5y", "Cardiac monitoring", "Annual mammogram"]
     },
     "III": {
-      "primary_treatments": ["Neoadjuvant TCHP"],
-      "surgery": ["Mastectomy or BCS + ALND"],
-      "radiation": ["PMRT to chest wall & nodes"],
-      "residual": ["T-DM1"],
-      "brca": ["Olaparib"],
+      "primary_treatments": [
+        {"treatment": "Neoadjuvant TCHP", "evidence": "Level 1"}
+      ],
+      "surgery": [
+        {"treatment": "Mastectomy or BCS + ALND", "evidence": "Level 1"}
+      ],
+      "radiation": [
+        {"treatment": "PMRT to chest wall & nodes", "evidence": "Level 1"}
+      ],
+      "residual": [
+        {"treatment": "T-DM1", "evidence": "Level 1"}
+      ],
+      "brca": [
+        {"treatment": "Olaparib", "evidence": "Level 1"}
+      ],
       "alternatives": ["Dose-dense AC-T", "Clinical Trial"],
       "follow_up": ["Exam q3-6m", "Cardiac monitoring"]
     },
     "IV": {
-      "primary_treatments": ["HER2-targeted systemic therapy"],
-      "targeted": ["Trastuzumab", "Pertuzumab", "T-DXd", "T-DM1"],
-      "immunotherapy": ["Pembrolizumab if PD-L1+ TNBC"],
-      "endocrine": ["AI + CDK4/6 inhibitor if ER+"],
+      "primary_treatments": [
+        {"treatment": "HER2-targeted systemic therapy", "evidence": "Level 1"}
+      ],
+      "targeted": [
+        {"treatment": "Trastuzumab", "evidence": "Level 1"},
+        {"treatment": "Pertuzumab", "evidence": "Level 1"},
+        {"treatment": "T-DXd", "evidence": "Level 1 (DESTINY-Breast03)"},
+        {"treatment": "T-DM1", "evidence": "Level 1"}
+      ],
+      "immunotherapy": [
+        {"treatment": "Pembrolizumab if PD-L1+ TNBC", "evidence": "Level 1 (KEYNOTE-355)"}
+      ],
+      "endocrine": [
+        {"treatment": "AI + CDK4/6 inhibitor if ER+", "evidence": "Level 1 (MONALEESA/MONARCH)"}
+      ],
       "alternatives": ["Tucatinib-based regimens", "Clinical Trial Participation"],
       "follow_up": ["Q2-3m imaging"]
     }
