@@ -2,9 +2,37 @@ const TreatmentPlan = require('../models/TreatmentPlan');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
 const axios = require('axios');
-const { formatEvidenceWithGemini } = require('../utils/geminiFormatter'); // Updated import
+const { formatEvidenceWithGemini, generatePathwayWithGemini } = require('../utils/geminiFormatter'); // Updated import
 
 const { generateMockAnalysis } = require('../utils/aiSimulator');
+
+// @desc    Generate a weekly pathway from a treatment plan
+// @route   POST /api/treatments/pathway/generate
+// @access  Private
+exports.generatePathway = async (req, res) => {
+    try {
+        const { plan } = req.body;
+
+        if (!plan) {
+            return res.status(400).json({
+                success: false,
+                message: 'Treatment plan is required'
+            });
+        }
+
+        const pathway = await generatePathwayWithGemini(plan);
+
+        res.json({
+            success: true,
+            data: pathway
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
 
 // @desc    Generate and format a treatment plan using AI and Gemini
 // @route   POST /api/treatments/generate-formatted
@@ -73,7 +101,7 @@ exports.generateFormattedPlan = async (req, res) => {
                 alternativeOptions: rawPlan.alternatives || [],
                 guidelineAlignment: formattedEvidence, // Store the formatted evidence here
                 planData: rawPlan,
-                createdById: req.user.id,
+                createdById: req.user ? req.user.id : null,
                 status: 'active'
             });
             console.log('New treatment plan saved to database.');

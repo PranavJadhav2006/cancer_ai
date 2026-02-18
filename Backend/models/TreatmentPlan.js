@@ -10,7 +10,7 @@ const TreatmentPlan = sequelize.define('TreatmentPlan', {
         primaryKey: true
     },
     recommendedProtocol: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false
     },
     confidence: {

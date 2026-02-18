@@ -7,7 +7,8 @@ const {
     processAnalysis,
     updateAnalysis,
     getSlice,
-    get3DModel
+    get3DModel,
+    getQRCode
 } = require('../controllers/analysisController');
 const { protect } = require('../middleware/auth');
 
@@ -28,6 +29,9 @@ router.route('/:id/slice/:index')
     .get(protect, getSlice);
 
 router.route('/:id/model')
-    .get(protect, get3DModel);
+    .get(get3DModel);
+
+router.route('/:id/qr')
+    .get(getQRCode);
 
 module.exports = router;

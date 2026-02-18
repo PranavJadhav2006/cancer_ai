@@ -102,7 +102,7 @@ def generate_treatment_plan(patient, rules, evidence_levels, cancer, query, quer
 
     prompt = f"""
 You are an oncology clinical summarizer.
-Rewrite the following clinical plan into a structured JSON format.
+Rewrite the following clinical plan into a structured JSON format, including a detailed longitudinal treatment pathway.
 
 Expected JSON structure:
 {{
@@ -110,7 +110,16 @@ Expected JSON structure:
   "clinical_rationale": "...",
   "alternatives": ["...", "..."],
   "safety_alerts": ["...", "..."],
-  "follow_up": "..."
+  "follow_up": "...",
+  "pathway": [
+    {{
+      "title": "Phase Name (e.g., Surgical Intervention)",
+      "duration": "Timeframe (e.g., Week 0-2)",
+      "description": "Brief summary of the phase goals",
+      "details": ["Specific action 1", "Specific action 2"],
+      "marker": "Relevant emoji (e.g., 🏥, 🧬, ⚡, 💊)"
+    }}
+  ]
 }}
 
 Use the EVIDENCE TAGS below to justify the "clinical_rationale". 
@@ -135,7 +144,7 @@ SUPPORTING EVIDENCE:
     tokenizer, model, device = load_model()
 
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(device)
-    outputs = model.generate(**inputs, max_new_tokens=500, do_sample=False)
+    outputs = model.generate(**inputs, max_new_tokens=600, do_sample=False)
 
     text = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
 
@@ -146,6 +155,8 @@ SUPPORTING EVIDENCE:
         json_match = re.search(r'\{.*\}', text, re.DOTALL)
         if json_match:
             plan_data = json.loads(json_match.group(0))
+            if "pathway" not in plan_data:
+                raise ValueError("Pathway missing")
         else:
             raise ValueError("No JSON found")
     except Exception:
@@ -169,12 +180,31 @@ SUPPORTING EVIDENCE:
         alternatives = rules.get("alternative_options", ["Standard clinical trial participation."])
         str_alternatives = [alt['treatment'] if isinstance(alt, dict) else alt for alt in alternatives]
 
+        # Generate a heuristic pathway based on cancer type
+        pathway = [
+            {
+                "title": "Initial Intervention",
+                "duration": "Week 0-4",
+                "description": f"Primary treatment phase for {cancer}.",
+                "details": [primary_display],
+                "marker": "🏥"
+            },
+            {
+                "title": "Maintenance & Monitoring",
+                "duration": "Month 2-12",
+                "description": "Long-term disease control and surveillance.",
+                "details": rules.get("follow_up", ["Routine clinical evaluation"]),
+                "marker": "💊"
+            }
+        ]
+
         plan_data = {
             "primary_treatment": primary_display,
             "clinical_rationale": rules.get("performance_adjustment", "Treatment aligns with standard clinical guideline recommendations."),
             "alternatives": str_alternatives,
             "safety_alerts": safety_alerts,
-            "follow_up": "; ".join(rules.get("follow_up", ["Routine clinical evaluation"]))
+            "follow_up": "; ".join(rules.get("follow_up", ["Routine clinical evaluation"])),
+            "pathway": pathway
         }
 
     return plan_data, evidence

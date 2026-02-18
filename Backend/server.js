@@ -93,6 +93,9 @@ app.use(express.static(path.join(__dirname, '../Frontend/dist')));
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve AR assets
+app.use('/ar_models', express.static(path.join(__dirname, '../Segmentation Model/AR_Assets/results')));
+
 // ─── Route Mounting ──────────────────────────────────────────────────────────
 
 // Auth routes without rate limiting

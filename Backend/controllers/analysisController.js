@@ -360,6 +360,8 @@ exports.getSlice = async (req, res) => {
     }
 };
 
+const qr = require('qrcode');
+
 // @desc    Get analysis 3D model (GLB)
 // @route   GET /api/analyses/:id/model
 // @access  Private
@@ -395,6 +397,38 @@ exports.get3DModel = async (req, res) => {
         return res.status(404).json({ success: false, message: '3D Model not found' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Get QR code for analysis 3D model
+// @route   GET /api/analyses/:id/qr
+// @access  Public
+exports.getQRCode = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const analysis = await Analysis.findByPk(id);
+
+        if (!analysis) {
+            return res.status(404).json({
+                success: false,
+                message: 'Analysis not found'
+            });
+        }
+
+        const modelUrl = `http://10.119.141.231:8000/api/analyses/${id}/model`;
+        const qrCodeUrl = await qr.toDataURL(modelUrl);
+
+        res.json({
+            success: true,
+            data: {
+                qrCodeUrl
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 

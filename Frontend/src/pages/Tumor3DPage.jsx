@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Box, Grid, Typography, TextField, Button, IconButton, Switch, Tooltip, Chip, Slider, Divider
+  Box, Grid, Typography, TextField, Button, IconButton, Switch, Tooltip, Chip, Slider, Divider, Modal
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -12,6 +12,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import DownloadIcon from '@mui/icons-material/Download';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
 import LayersIcon from '@mui/icons-material/Layers';
 import BiotechIcon from '@mui/icons-material/Biotech';
@@ -132,11 +133,13 @@ const ThreeDViewport = ({ volume, location, analysisId, layers, brainOpacity, se
   };
 
   const getModelUrl = () => {
-    const pid = analysisId || 'test';
-    const name = analysisId ? 'tumor_with_brain.glb' : 'tumor_with_brain_new1.glb';
-    const storedToken = localStorage.getItem('token');
-    const token = storedToken ? decryptFromStorage(storedToken) : '';
-    return `http://localhost:8000/api/analyses/${pid}/model?modelName=${name}&token=${token}`;
+    if (!analysisId) {
+      return null; // Don't try to load a model if there's no analysis ID
+    }
+    const pid = analysisId;
+    const name = 'tumor_with_brain.glb'; // This is the name the backend generates
+    // Use the base URL from the configured API client
+    return `${apiClient.defaults.baseURL}/analyses/${pid}/model?modelName=${name}`;
   };
 
   const modelUrl = getModelUrl();
@@ -229,12 +232,14 @@ const ThreeDViewport = ({ volume, location, analysisId, layers, brainOpacity, se
 const Tumor3DPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isPatient } = useAuth();
+  const { isPatient, isDoctor } = useAuth();
   const [layers, setLayers] = useState({ tumor: true, edema: true, brain: true });
   const [realisticView, setRealisticView] = useState(true);
   const [brainOpacity, setBrainOpacity] = useState(0.25);
   const [patientData, setPatientData] = useState(null);
   const [analysisId, setAnalysisId] = useState(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const [analysisMetrics, setAnalysisMetrics] = useState({
     volume: null, edema: null, necrosis: null, enhancing: null, location: 'SCANNING...', sphericity: null
@@ -272,8 +277,44 @@ const Tumor3DPage = () => {
     } catch (err) { console.error("Error fetching data:", err); }
   };
 
+  const handleGenerateQrCode = async () => {
+    if (!analysisId) return;
+    try {
+      const res = await apiClient.get(`/analyses/${analysisId}/qr`);
+      if (res.data.success) {
+        setQrCodeUrl(res.data.data.qrCodeUrl);
+        setIsQrModalOpen(true);
+      }
+    } catch (err) {
+      console.error("Error generating QR code:", err);
+    }
+  };
+
   return (
     <Box className="tumor-3d-root">
+      <Modal
+        open={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        aria-labelledby="qr-code-modal-title"
+        aria-describedby="qr-code-modal-description"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 400,
+          bgcolor: 'background.paper',
+          border: '2px solid #000',
+          boxShadow: 24,
+          p: 4,
+        }}>
+          <Typography id="qr-code-modal-title" variant="h6" component="h2">
+            Scan to View in AR
+          </Typography>
+          <img src={qrCodeUrl} alt="AR QR Code" style={{ width: '100%' }} />
+        </Box>
+      </Modal>
       <Box sx={{ px: 4, py: 2, borderBottom: `1px solid rgba(255,255,255,0.05)`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h5" sx={{ fontFamily: '"Rajdhani"', fontWeight: 700, color: '#fff' }}>SURGICAL DIGITAL TWIN</Typography>
@@ -282,6 +323,11 @@ const Tumor3DPage = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
+          {isDoctor && (
+            <Button variant="contained" startIcon={<QrCode2Icon />} sx={{ bgcolor: colors.cyan, color: '#000', '&:hover': { bgcolor: colors.teal } }} onClick={handleGenerateQrCode}>
+              View in AR
+            </Button>
+          )}
           <Button variant="outlined" startIcon={<DownloadIcon />} sx={{ color: colors.muted, borderColor: 'rgba(255,255,255,0.1)' }}>EXPORT MESH (.GLB)</Button>
         </Box>
       </Box>

@@ -328,6 +328,17 @@
     font-family: "Rajdhani", sans-serif;
 }
 
+.no-data-msg {
+    text-align: center;
+    padding: 3rem;
+    color: #94A3B8;
+    font-family: "Rajdhani", sans-serif;
+    font-size: 1.2rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+}
+
 /* Footer Buttons */
 .action-footer {
     display: flex;

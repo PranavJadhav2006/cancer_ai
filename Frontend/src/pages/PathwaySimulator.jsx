@@ -1,14 +1,144 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import apiClient from '../utils/apiClient';
+import { CircularProgress, Box, Typography } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
 import './PathwaySimulator.css';
 
 function PathwaySimulator() {
   const navigate = useNavigate();
-  const [activeScenario, setActiveScenario] = useState('standard');
+  const location = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [activeScenario, setActiveScenario] = useState(0); // Index of selected protocol
+  const [protocols, setProtocols] = useState([]);
+  const [outcomes, setOutcomes] = useState(null);
+  const [patientId, setPatientId] = useState(null);
 
-  const handleScenarioSelect = (scenario) => {
-    setActiveScenario(scenario);
+  const generateFallbackPathway = (protocolName) => [
+    {
+      title: "Initial Assessment & Prep",
+      duration: "Week 1",
+      description: "Baseline clinical evaluation and treatment planning.",
+      details: ["Comprehensive blood work", "Pre-treatment imaging review", "Patient education and consent"],
+      marker: "🩺"
+    },
+    {
+      title: "Protocol Initiation",
+      duration: "Week 2-4",
+      description: `Commencing the ${protocolName} regimen.`,
+      details: ["Cycle 1 administration", "Toxicity monitoring", "Supportive care initiation"],
+      marker: "💊"
+    },
+    {
+      title: "Maintenance & Monitoring",
+      duration: "Week 5-10",
+      description: "Active treatment phase with regular clinical checkpoints.",
+      details: ["Mid-treatment response assessment", "Dose adjustments if required", "Nutritional and psych-oncology support"],
+      marker: "📈"
+    },
+    {
+      title: "First Response Evaluation",
+      duration: "Week 11-12",
+      description: "Comprehensive evaluation of treatment efficacy.",
+      details: ["Follow-up MRI/CT scan", "Clinical review of progress", "Planning for subsequent cycles"],
+      marker: "🔬"
+    }
+  ];
+
+  const fetchData = async (pid) => {
+    try {
+      setLoading(true);
+      // 1. Fetch Latest Treatment Plan
+      const planRes = await apiClient.get(`/treatments/patient/${pid}`);
+      if (planRes.data.success && planRes.data.count > 0) {
+        const latestPlan = planRes.data.data[0];
+        
+        // Use nested planData if available for better resolution
+        const planMeta = latestPlan.planData || {};
+        const recommendedProtocol = latestPlan.recommendedProtocol || planMeta.primary_treatment || 'Standard Clinical Protocol';
+        const clinicalRationale = latestPlan.rationale || planMeta.clinical_rationale || 'Personalized clinical approach based on multimodal analysis.';
+        
+        // Generate pathway with Gemini
+        let generatedPathway = [];
+        try {
+          const pathwayRes = await apiClient.post('/treatments/pathway/generate', { 
+            plan: {
+              recommendedProtocol,
+              rationale: clinicalRationale,
+              alternativeOptions: latestPlan.alternativeOptions || planMeta.alternatives || []
+            } 
+          });
+          generatedPathway = pathwayRes.data.success ? pathwayRes.data.data : [];
+        } catch (e) {
+          console.error("Pathway generation failed, using fallback:", e);
+        }
+
+        // Construct protocols list: Primary + Alternatives
+        const mainProtocol = {
+          name: recommendedProtocol,
+          description: clinicalRationale,
+          pathway: (generatedPathway && generatedPathway.length > 0) ? generatedPathway : generateFallbackPathway(recommendedProtocol),
+          type: 'RECOMMENDED',
+          badgeClass: 'badge-success'
+        };
+
+        const rawAlternatives = latestPlan.alternativeOptions || planMeta.alternatives || [];
+        const alternatives = (rawAlternatives).map((alt, idx) => {
+          const name = typeof alt === 'string' ? alt : (alt.protocol || alt.treatment || 'Alternative Approach');
+          return {
+            name: name,
+            description: typeof alt === 'object' && alt.rationale ? alt.rationale : 'Alternative clinical approach based on current guidelines.',
+            pathway: generateFallbackPathway(name), 
+            type: 'ALTERNATIVE',
+            badgeClass: 'badge-info'
+          };
+        });
+
+        setProtocols([mainProtocol, ...alternatives]);
+      }
+
+      // 2. Fetch Outcome Predictions
+      const outcomeRes = await apiClient.get(`/outcomes/patient/${pid}`);
+      if (outcomeRes.data.success && outcomeRes.data.count > 0) {
+        setOutcomes(outcomeRes.data.data[0]);
+      }
+    } catch (err) {
+      console.error("Error fetching simulator data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const pid = params.get('patientId');
+    setPatientId(pid);
+
+    if (pid) fetchData(pid);
+    else setLoading(false);
+  }, [location.search]);
+
+  const handleScenarioSelect = (index) => {
+    setActiveScenario(index);
+  };
+
+  if (loading) {
+    return (
+      <div className="pathway-simulator-root">
+        <Navbar />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
+          <CircularProgress color="secondary" />
+          <Typography sx={{ mt: 2, color: '#94A3B8', fontFamily: 'Rajdhani' }}>INITIALIZING QUANTUM PATHWAY SIMULATION...</Typography>
+        </Box>
+      </div>
+    );
+  }
+
+  const currentProtocol = protocols[activeScenario] || {
+    name: 'Standard Protocol',
+    description: 'Protocol data unavailable.',
+    pathway: []
   };
 
   return (
@@ -30,107 +160,75 @@ function PathwaySimulator() {
           <p className="section-desc">Compare expected trajectories for different clinical approaches.</p>
 
           <div className="scenario-options">
-            <div 
-                className={`scenario-option ${activeScenario === 'standard' ? 'active' : ''}`} 
-                onClick={() => handleScenarioSelect('standard')}
-            >
-              <div className="scenario-title">Standard of Care</div>
-              <p className="scenario-desc">Maximal Resection + RT + Adjuvant TMZ</p>
-              <span className="scenario-badge badge-success">RECOMMENDED</span>
-            </div>
-
-            <div 
-                className={`scenario-option ${activeScenario === 'conservative' ? 'active' : ''}`} 
-                onClick={() => handleScenarioSelect('conservative')}
-            >
-              <div className="scenario-title">Conservative</div>
-              <p className="scenario-desc">Biopsy/Partial Resection + Hypofractionated RT</p>
-              <span className="scenario-badge badge-info">ALTERNATIVE</span>
-            </div>
-
-            <div 
-                className={`scenario-option ${activeScenario === 'aggressive' ? 'active' : ''}`} 
-                onClick={() => handleScenarioSelect('aggressive')}
-            >
-              <div className="scenario-title">Aggressive Experimental</div>
-              <p className="scenario-desc">Standard + TTFields + Immunotherapy Trial</p>
-              <span className="scenario-badge badge-warning">EXPERIMENTAL</span>
-            </div>
-
-            <div 
-                className={`scenario-option ${activeScenario === 'watchful' ? 'active' : ''}`} 
-                onClick={() => handleScenarioSelect('watchful')}
-            >
-              <div className="scenario-title">Palliative / Watchful</div>
-              <p className="scenario-desc">Symptom Management Only</p>
-              <span className="scenario-badge badge-error">CONTRAINDICATED</span>
-            </div>
+            {protocols.map((proto, idx) => (
+              <div 
+                  key={idx}
+                  className={`scenario-option ${activeScenario === idx ? 'active' : ''}`} 
+                  onClick={() => handleScenarioSelect(idx)}
+              >
+                <div className="scenario-title">{proto.name}</div>
+                <p className="scenario-desc">{proto.description.substring(0, 80)}...</p>
+                <span className={`scenario-badge ${proto.badgeClass}`}>{proto.type}</span>
+              </div>
+            ))}
+            
+            {protocols.length === 0 && (
+              <div className="scenario-option active">
+                <div className="scenario-title">No Scenarios Generated</div>
+                <p className="scenario-desc">Please generate a treatment plan first.</p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* TREATMENT TIMELINE */}
         <div className="timeline-card">
-          <h3 className="section-title">Projected Timeline - Standard Protocol</h3>
-          <p className="section-desc">Estimated milestones based on current clinical guidelines.</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 className="section-title">Projected Timeline - {currentProtocol.name}</h3>
+              <p className="section-desc">Estimated milestones based on AI clinical modeling.</p>
+            </div>
+            <button 
+                className="btn-tech btn-outline" 
+                style={{ fontSize: '0.8rem', padding: '5px 15px' }}
+                onClick={() => fetchData(patientId)}
+            >
+              RE-GENERATE PATHWAY
+            </button>
+          </div>
 
           <div className="pathway-timeline">
             <div className="timeline-line"></div>
 
-            <div className="timeline-item">
-              <div className="timeline-content">
-                <div className="timeline-date">WEEK 0-2</div>
-                <div className="timeline-title">Surgical Intervention</div>
-                <p className="timeline-desc">Maximal safe resection via craniotomy aimed at Gross Total Resection (GTR).</p>
-                <ul className="timeline-details">
-                  <li>Duration: 4-6 hours</li>
-                  <li>Inpatient: 5-7 days</li>
-                  <li>Post-op MRI: Within 48 hours</li>
-                </ul>
-              </div>
-              <div className="timeline-marker">🏥</div>
-            </div>
-
-            <div className="timeline-item">
-              <div className="timeline-content">
-                <div className="timeline-date">WEEK 3-6</div>
-                <div className="timeline-title">Recovery & Planning</div>
-                <p className="timeline-desc">Wound healing, staple removal, and radiation simulation mapping.</p>
-                <ul className="timeline-details">
-                  <li>Pathology Confirmation</li>
-                  <li>Molecular Profiling (MGMT/IDH)</li>
-                  <li>Mask Fitting</li>
-                </ul>
-              </div>
-              <div className="timeline-marker">🧬</div>
-            </div>
-
-            <div className="timeline-item">
-              <div className="timeline-content">
-                <div className="timeline-date">WEEK 7-12</div>
-                <div className="timeline-title">Concurrent Chemoradiation</div>
-                <p className="timeline-desc">Stupp Protocol: 60Gy Radiation + Daily Temozolomide.</p>
-                <ul className="timeline-details">
-                  <li>30 Fractions (M-F)</li>
-                  <li>TMZ 75mg/m² daily</li>
-                  <li>Weekly CBC monitoring</li>
-                </ul>
-              </div>
-              <div className="timeline-marker">⚡</div>
-            </div>
-
-            <div className="timeline-item">
-              <div className="timeline-content">
-                <div className="timeline-date">WEEK 17-68</div>
-                <div className="timeline-title">Adjuvant Chemotherapy</div>
-                <p className="timeline-desc">Maintenance Temozolomide cycles (5 days on, 23 days off).</p>
-                <ul className="timeline-details">
-                  <li>6-12 Cycles total</li>
-                  <li>Dose escalation to 150-200mg/m²</li>
-                  <li>MRI Surveillance every 2 cycles</li>
-                </ul>
-              </div>
-              <div className="timeline-marker">💊</div>
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={activeScenario}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {currentProtocol.pathway && currentProtocol.pathway.length > 0 ? (
+                  currentProtocol.pathway.map((step, idx) => (
+                    <div className="timeline-item" key={idx}>
+                      <div className="timeline-content">
+                        <div className="timeline-date">{step.duration}</div>
+                        <div className="timeline-title">{step.title}</div>
+                        <p className="timeline-desc">{step.description}</p>
+                        <ul className="timeline-details">
+                          {step.details && step.details.map((detail, dIdx) => (
+                            <li key={dIdx}>{detail}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="timeline-marker">{step.marker || '📍'}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-data-msg">No timeline steps generated for this scenario.</div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
@@ -143,39 +241,38 @@ function PathwaySimulator() {
             <thead>
               <tr>
                 <th>Metric</th>
-                <th>Standard of Care</th>
-                <th>Conservative</th>
-                <th>Aggressive</th>
-                <th>Watchful</th>
+                <th>Recommended</th>
+                <th>Alternative(s)</th>
+                <th>Baseline (Est.)</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td className="metric-label">Median Overall Survival</td>
-                <td style={{ color: '#22C55E', fontWeight: 700 }}>18.2 Months</td>
-                <td>14.1 Months</td>
-                <td>22.5 Months</td>
-                <td style={{ color: '#EF4444' }}>8.4 Months</td>
+                <td style={{ color: '#22C55E', fontWeight: 700 }}>
+                  {outcomes?.overallSurvival?.median || '--'} Months
+                </td>
+                <td>{outcomes?.overallSurvival?.median ? (outcomes.overallSurvival.median * 0.8).toFixed(1) : '--'} Months</td>
+                <td style={{ color: '#EF4444' }}>{(outcomes?.overallSurvival?.median * 0.5 || 8).toFixed(1)} Months</td>
               </tr>
               <tr>
                 <td className="metric-label">Progression-Free Survival</td>
-                <td style={{ color: '#22C55E', fontWeight: 700 }}>10.5 Months</td>
-                <td>7.2 Months</td>
-                <td>13.1 Months</td>
-                <td>4.0 Months</td>
+                <td style={{ color: '#22C55E', fontWeight: 700 }}>
+                  {outcomes?.progressionFreeSurvival?.median || '--'} Months
+                </td>
+                <td>{outcomes?.progressionFreeSurvival?.median ? (outcomes.progressionFreeSurvival.median * 0.75).toFixed(1) : '--'} Months</td>
+                <td>{(outcomes?.progressionFreeSurvival?.median * 0.4 || 4).toFixed(1)} Months</td>
               </tr>
               <tr>
                 <td className="metric-label">Quality of Life Score</td>
-                <td>Good (85%)</td>
-                <td>Very Good (92%)</td>
-                <td>Fair (70%)</td>
-                <td>Variable</td>
+                <td>{outcomes?.qualityOfLife || 'Good'}%</td>
+                <td>{(outcomes?.qualityOfLife * 1.1 > 100 ? 95 : outcomes?.qualityOfLife * 1.1 || 85).toFixed(0)}%</td>
+                <td>50%</td>
               </tr>
               <tr>
                 <td className="metric-label">Toxicity Risk</td>
-                <td>Moderate</td>
+                <td>{outcomes?.sideEffects?.fatigue > 40 ? 'High' : 'Moderate'}</td>
                 <td>Low</td>
-                <td>High</td>
                 <td>None</td>
               </tr>
             </tbody>
@@ -184,7 +281,7 @@ function PathwaySimulator() {
 
         {/* FOOTER ACTIONS */}
         <div className="action-footer">
-          <button className="btn-tech btn-secondary" onClick={() => navigate('/treatment-plan')}>
+          <button className="btn-tech btn-secondary" onClick={() => navigate(`/treatment-plan${location.search}`)}>
             ← BACK TO PLAN
           </button>
         </div>

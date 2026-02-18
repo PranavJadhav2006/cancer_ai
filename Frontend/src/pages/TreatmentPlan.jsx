@@ -91,14 +91,13 @@ function TreatmentPlan() {
     const params = new URLSearchParams(location.search);
     const pid = params.get('patientId');
 
-    const fullPatientData = overrideData || { 
-        cancer_type: cancerType.toLowerCase(), 
+    const fullPatientData = { 
+        ...(overrideData || { 
+            cancer_type: cancerType.toLowerCase(), 
+            ...patientData 
+        }),
         patientId: pid,
-        forceRefresh,
-        // Include full patient data objects for AI
-        mriPaths: patientData.mriPaths,
-        vcfAnalysis: patientData.vcfAnalysis,
-        ...patientData 
+        forceRefresh
     };
     
     setLoading(true);

@@ -408,118 +408,129 @@ def process_report_text():
 
 @app.route('/recommend', methods=['POST'])
 def recommend_treatment():
-    data = request.get_json()
-    patient_id = data.get('patientId')
-    cancer_type = data.get('cancerType') or data.get('cancer_type')
-    patient_query = data.get('query', '')
-    patient_queries = data.get('queries', [])
+    try:
+        data = request.get_json()
+        patient_id = data.get('patientId')
+        cancer_type = data.get('cancerType') or data.get('cancer_type')
+        patient_query = data.get('query', '')
+        patient_queries = data.get('queries', [])
 
-    if not cancer_type:
-        return jsonify({"error": "No cancer type provided."}), 400
+        if not cancer_type:
+            return jsonify({"error": "No cancer type provided."}), 400
 
-    # Calculate age from DOB if age is not directly provided
-    age = data.get('age')
-    if age is None and data.get('dateOfBirth'):
-        try:
-            dob_str = data.get('dateOfBirth').split('T')[0] # Assuming ISO format 'YYYY-MM-DDTHH:MM:SS.sssZ'
-            dob = datetime.strptime(dob_str, '%Y-%m-%d')
-            today = datetime.now()
-            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-        except Exception as e:
-            print(f"Warning: Could not calculate age from DOB: {e}")
-            age = None # Fallback if DOB parsing fails
-    
-    # Extract detailed patient data including MRI and VCF
-    patient_data_for_llm = {
-        "patientId": patient_id,
-        "cancer_type": cancer_type,
-        "age": age,
-        "kps": data.get('kps'),
-        "stage": data.get('stage'),
-        "genomicProfile": {
-            "ER": data.get('ER'),
-            "PR": data.get('PR'),
-            "HER2": data.get('HER2'),
-            "BRCA": data.get('BRCA'),
-            "PDL1": data.get('PDL1'),
-            "MGMT": data.get('MGMT'),
-            "IDH": data.get('IDH'),
-            "EGFR": data.get('EGFR'),
-            "ALK": data.get('ALK'),
-            "KRAS": data.get('KRAS'),
-            "AFP": data.get('AFP'),
-        },
-        "mriPaths": data.get('mriPaths'),
-        "vcfAnalysis": data.get('vcfAnalysis'),
-        "pathologyAnalysis": data.get('pathologyAnalysis') # If you send this from frontend
-    }
+        # Calculate age from DOB if age is not directly provided
+        age = data.get('age')
+        if age is None and data.get('dateOfBirth'):
+            try:
+                dob_str = data.get('dateOfBirth').split('T')[0] # Assuming ISO format 'YYYY-MM-DDTHH:MM:SS.sssZ'
+                dob = datetime.strptime(dob_str, '%Y-%m-%d')
+                today = datetime.now()
+                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            except Exception as e:
+                print(f"Warning: Could not calculate age from DOB: {e}")
+                age = None # Fallback if DOB parsing fails
+        
+        # Extract detailed patient data including MRI and VCF
+        patient_data_for_llm = {
+            "patientId": patient_id,
+            "cancer_type": cancer_type,
+            "age": age,
+            "kps": data.get('kps'),
+            "stage": data.get('stage'),
+            "genomicProfile": {
+                "ER": data.get('ER'),
+                "PR": data.get('PR'),
+                "HER2": data.get('HER2'),
+                "BRCA": data.get('BRCA'),
+                "PDL1": data.get('PDL1'),
+                "MGMT": data.get('MGMT'),
+                "IDH": data.get('IDH'),
+                "EGFR": data.get('EGFR'),
+                "ALK": data.get('ALK'),
+                "KRAS": data.get('KRAS'),
+                "AFP": data.get('AFP'),
+            },
+            "mriPaths": data.get('mriPaths'),
+            "vcfAnalysis": data.get('vcfAnalysis'),
+            "pathologyAnalysis": data.get('pathologyAnalysis') # If you send this from frontend
+        }
 
-    # Clean up genomicProfile to remove None values
-    patient_data_for_llm['genomicProfile'] = {k: v for k, v in patient_data_for_llm['genomicProfile'].items() if v is not None}
+        # Clean up genomicProfile to remove None values
+        patient_data_for_llm['genomicProfile'] = {k: v for k, v in patient_data_for_llm['genomicProfile'].items() if v is not None}
 
-    # Step 1: Format a rich summary from the detailed data
-    multimodal_summary = format_multimodal_data(patient_data_for_llm)
+        # Step 1: Format a rich summary from the detailed data
+        multimodal_summary = format_multimodal_data(patient_data_for_llm)
 
-    # Step 2: Run rules engine
-    rules = run_rules(patient_data_for_llm, cancer_type)
-    
-    # Step 3: Generate treatment plan using LLM
-    plan_data, evidence = generate_treatment_plan(
-        patient=multimodal_summary, # Pass the concise summary instead of the full object
-        rules=rules, 
-        evidence_levels=rules.get("evidence_levels", []),
-        cancer=cancer_type, 
-        query=patient_query, 
-        queries=patient_queries
-    )
+        # Step 2: Run rules engine
+        rules = run_rules(patient_data_for_llm, cancer_type)
+        
+        # Step 3: Generate treatment plan using LLM
+        plan_data, evidence = generate_treatment_plan(
+            patient=multimodal_summary, # Pass the concise summary instead of the full object
+            rules=rules, 
+            evidence_levels=rules.get("evidence_levels", []),
+            cancer=cancer_type, 
+            query=patient_query, 
+            queries=patient_queries
+        )
 
-    # Calculate Dynamic Confidence Score
-    avg_rag_score = sum([e.get('score', 0.5) for e in evidence]) / len(evidence) if evidence else 0.5
-    dynamic_confidence = min(99.9, max(75.0, 95.0 - (avg_rag_score * 10)))
+        # Calculate Dynamic Confidence Score
+        avg_rag_score = sum([e.get('score', 0.5) for e in evidence]) / len(evidence) if evidence else 0.5
+        dynamic_confidence = min(99.9, max(75.0, 95.0 - (avg_rag_score * 10)))
 
-    # Construct Structured Protocols List
-    primary_name = plan_data.get("primary_treatment", "Standard Protocol")
-    if len(primary_name) < 5: primary_name = "Standard Protocol"
+        # Construct Structured Protocols List
+        if not isinstance(plan_data, dict):
+             print(f"Error: plan_data is not a dict: {type(plan_data)}")
+             plan_data = {"primary_treatment": str(plan_data)}
 
-    protocols = [{
-        "name": primary_name,
-        "score": round(dynamic_confidence, 1),
-        "duration": "12-18 months" if cancer_type == "Brain" else "6-12 months",
-        "efficacy": "High",
-        "toxicity": "Moderate",
-        "cost": "High",
-        "recommended": True
-    }]
+        primary_name = plan_data.get("primary_treatment", "Standard Protocol")
+        if not isinstance(primary_name, str) or len(str(primary_name)) < 5: 
+            primary_name = "Standard Protocol"
 
-    # Helper to safely join lists that might contain strings or dicts
-    def safe_join(items):
-        if not items: return ""
-        str_items = [i['treatment'] if isinstance(i, dict) else i for i in items]
-        return ", ".join(filter(None, str_items))
+        protocols = [{
+            "name": primary_name,
+            "score": round(dynamic_confidence, 1),
+            "duration": "12-18 months" if cancer_type == "Brain" else "6-12 months",
+            "efficacy": "High",
+            "toxicity": "Moderate",
+            "cost": "High",
+            "recommended": True
+        }]
 
-    for i, alt in enumerate(rules.get("alternative_options", [])):
-        protocols.append({
-            "name": alt['treatment'] if isinstance(alt, dict) else alt,
-            "score": round(dynamic_confidence - (i+1)*random.uniform(5, 10), 1),
-            "duration": "6-12 months",
-            "efficacy": "Moderate",
-            "toxicity": "Low-Moderate",
-            "cost": "Moderate",
-            "recommended": False
+        # Helper to safely join lists that might contain strings or dicts
+        def safe_join(items):
+            if not items: return ""
+            str_items = [i['treatment'] if isinstance(i, dict) else i for i in items]
+            return ", ".join(filter(None, str_items))
+
+        for i, alt in enumerate(rules.get("alternative_options", [])):
+            protocols.append({
+                "name": alt['treatment'] if isinstance(alt, dict) else alt,
+                "score": round(dynamic_confidence - (i+1)*random.uniform(5, 10), 1),
+                "duration": "6-12 months",
+                "efficacy": "Moderate",
+                "toxicity": "Low-Moderate",
+                "cost": "Moderate",
+                "recommended": False
+            })
+
+        if len(protocols) < 2:
+            protocols.append({ "name": "Targeted Clinical Trial", "score": round(dynamic_confidence - 12.5, 1), "duration": "Variable", "efficacy": "Investigational", "toxicity": "Variable", "cost": "Trial-covered", "recommended": False })
+        
+        if len(protocols) < 3:
+            protocols.append({ "name": "Advanced Research Protocol", "score": round(dynamic_confidence - 18.0, 1), "duration": "12-24 months", "efficacy": "High (Projected)", "toxicity": "Moderate", "cost": "Institutional", "recommended": False })
+
+        return jsonify({
+            'plan': plan_data,
+            'evidence': evidence,
+            'protocols': protocols,
+            'confidence': round(dynamic_confidence, 1)
         })
-
-    if len(protocols) < 2:
-        protocols.append({ "name": "Targeted Clinical Trial", "score": round(dynamic_confidence - 12.5, 1), "duration": "Variable", "efficacy": "Investigational", "toxicity": "Variable", "cost": "Trial-covered", "recommended": False })
-    
-    if len(protocols) < 3:
-        protocols.append({ "name": "Advanced Research Protocol", "score": round(dynamic_confidence - 18.0, 1), "duration": "12-24 months", "efficacy": "High (Projected)", "toxicity": "Moderate", "cost": "Institutional", "recommended": False })
-
-    return jsonify({
-        'plan': plan_data,
-        'evidence': evidence,
-        'protocols': protocols,
-        'confidence': round(dynamic_confidence, 1)
-    })
+    except Exception as e:
+        print(f"ERROR in recommend_treatment: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/predict_side_effects', methods=['POST'])
 def predict_side_effects_route():
