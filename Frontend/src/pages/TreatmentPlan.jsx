@@ -475,6 +475,32 @@ function TreatmentPlan() {
     return defaultData;
   }, [cancerType]);
 
+  const renderProtocol = (protocol) => {
+    if (typeof protocol === 'string') {
+        try {
+            const parsed = JSON.parse(protocol);
+            // If parsing succeeds and it's an object, render it as an object
+            if (typeof parsed === 'object' && parsed !== null) {
+                return renderProtocol(parsed);
+            }
+            // Otherwise, it's just a string
+            return protocol;
+        } catch (e) {
+            // If parsing fails, it's just a regular string
+            return protocol;
+        }
+    }
+
+    if (typeof protocol === 'object' && protocol !== null) {
+        return Object.entries(protocol)
+            .filter(([key, value]) => value) // Filter for true values
+            .map(([key]) => key.charAt(0).toUpperCase() + key.slice(1))
+            .join(' + ');
+    }
+
+    return 'No protocol specified';
+  };
+
   const protocols = useMemo(() => {
     if (!treatmentData) return [];
     
@@ -484,7 +510,7 @@ function TreatmentPlan() {
         list = [...treatmentData.protocols];
     } else {
         list = [{
-            name: treatmentData.recommendedProtocol || 'Standard Protocol',
+            name: renderProtocol(treatmentData.recommendedProtocol) || 'Standard Protocol',
             score: treatmentData.confidence || 92,
             duration: '6-12 months',
             efficacy: 'High',
@@ -524,6 +550,20 @@ function TreatmentPlan() {
 
   const formatMarkdown = (text) => {
     if (!text) return null;
+
+    try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed === 'object' && parsed !== null) {
+            return Object.entries(parsed).map(([key, value]) => (
+                <div key={key}>
+                    <h5 style={{ color: '#00F0FF', marginTop: '1rem', marginBottom: '0.5rem', fontFamily: '"Rajdhani"' }}>{key.replace(/_/g, ' ').toUpperCase()}</h5>
+                    <p style={{ marginBottom: '1rem' }}>{String(value)}</p>
+                </div>
+            ));
+        }
+    } catch (e) {
+        // Not a JSON string, so process as markdown
+    }
     
     // Split by lines to handle bullet points and headers
     const lines = text.split('\n');
@@ -563,6 +603,21 @@ function TreatmentPlan() {
       }
       return part;
     });
+  };
+
+  const renderListItem = (item) => {
+    if (typeof item === 'string') {
+        return item;
+    }
+
+    if (typeof item === 'object' && item !== null) {
+        if (item.type && item.rationale) {
+            return `${item.type}: ${item.rationale}`;
+        }
+        return JSON.stringify(item);
+    }
+
+    return 'Invalid item';
   };
 
   return (
@@ -651,7 +706,7 @@ function TreatmentPlan() {
                     </div>
                 </div>
 
-                <h2 className="protocol-name">{treatmentData.recommendedProtocol}</h2>
+                <h2 className="protocol-name">{renderProtocol(treatmentData.recommendedProtocol)}</h2>
 
                 <div className="plan-details-grid">
                     <div className="plan-detail-section">
@@ -669,10 +724,10 @@ function TreatmentPlan() {
                         <ul className="plan-list">
                             {Array.isArray(treatmentData.planData.alternatives) ? (
                                 treatmentData.planData.alternatives.map((alt, i) => (
-                                    <li key={i}>{alt}</li>
+                                    <li key={i}>{renderListItem(alt)}</li>
                                 ))
                             ) : (
-                                <li>{treatmentData.planData.alternatives || 'None provided'}</li>
+                                <li>{renderListItem(treatmentData.planData.alternatives) || 'None provided'}</li>
                             )}
                         </ul>
                     </div>
@@ -682,10 +737,10 @@ function TreatmentPlan() {
                         <ul className="plan-list">
                             {Array.isArray(treatmentData.planData.safety_alerts) ? (
                                 treatmentData.planData.safety_alerts.map((alert, i) => (
-                                    <li key={i} style={{ color: '#FCA5A5' }}>{alert}</li>
+                                    <li key={i} style={{ color: '#FCA5A5' }}>{renderListItem(alert)}</li>
                                 ))
                             ) : (
-                                <li style={{ color: '#FCA5A5' }}>{treatmentData.planData.safety_alerts || 'No immediate safety alerts.'}</li>
+                                <li style={{ color: '#FCA5A5' }}>{renderListItem(treatmentData.planData.safety_alerts) || 'No immediate safety alerts.'}</li>
                             )}
                         </ul>
                     </div>

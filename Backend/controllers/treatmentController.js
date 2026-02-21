@@ -2,7 +2,8 @@ const TreatmentPlan = require('../models/TreatmentPlan');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
 const axios = require('axios');
-const { formatEvidenceWithGemini, generatePathwayWithGemini } = require('../utils/geminiFormatter'); // Updated import
+const { formatEvidenceWithGithub } = require('../utils/githubFormatter');
+const { generatePathwayWithGemini } = require('../utils/geminiFormatter'); // Keep for pathway generation
 
 const { generateMockAnalysis } = require('../utils/aiSimulator');
 
@@ -90,15 +91,27 @@ exports.generateFormattedPlan = async (req, res) => {
         let formattedEvidence = rawPlan.formatted_evidence;
         
         if (!formattedEvidence && evidence && evidence.length > 0) {
-            console.log('No pre-formatted evidence found. Calling Gemini for formatting...');
-            formattedEvidence = await formatEvidenceWithGemini(evidence);
+            console.log('No pre-formatted evidence found. Calling GitHub formatter...');
+            formattedEvidence = await formatEvidenceWithGithub(evidence);
         } else if (!formattedEvidence) {
             formattedEvidence = "No specific evidence provided for formatting.";
         }
 
-        // CRITICAL FIX: Ensure formattedEvidence is a string (prevent Sequelize object error)
+
+
+
+
+        // CRITICAL FIX: Ensure all text fields are strings to prevent Sequelize errors
         if (typeof formattedEvidence !== 'string') {
             formattedEvidence = JSON.stringify(formattedEvidence, null, 2);
+        }
+        let protocol = rawPlan.primary_treatment || 'Standard Protocol';
+        if (typeof protocol !== 'string') {
+            protocol = JSON.stringify(protocol, null, 2);
+        }
+        let rationale = rawPlan.clinical_rationale;
+        if (typeof rationale !== 'string') {
+            rationale = JSON.stringify(rationale, null, 2);
         }
 
         // 3. Save the generated plan to DB if patientId is provided
@@ -106,9 +119,9 @@ exports.generateFormattedPlan = async (req, res) => {
         if (patientId) {
             const savedPlan = await TreatmentPlan.create({
                 patientId,
-                recommendedProtocol: rawPlan.primary_treatment || 'Standard Protocol',
+                recommendedProtocol: protocol,
                 confidence: parseFloat(confidence),
-                rationale: rawPlan.clinical_rationale,
+                rationale: rationale,
                 alternativeOptions: rawPlan.alternatives || [],
                 guidelineAlignment: formattedEvidence, // Store the formatted evidence here
                 planData: rawPlan,

@@ -34,7 +34,8 @@
     "pg": "^8.18.0",
     "pg-hstore": "^2.3.4",
     "qrcode": "^1.5.4",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "openai": "^4.20.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
