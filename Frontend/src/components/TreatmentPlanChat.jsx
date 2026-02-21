@@ -89,7 +89,7 @@ const TreatmentPlanChat = ({ treatmentId, patientData, planData }) => {
                 bottom: 32,
                 right: 32,
                 width: 500, // Increased width
-                height: 700, // Increased height
+                height: 550, // Reverted height
                 display: 'flex',
                 flexDirection: 'column',
                 backgroundColor: '#0F172A',
