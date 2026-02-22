@@ -643,17 +643,26 @@ function TreatmentPlan() {
 
   const renderListItem = (item) => {
     if (typeof item === 'string') {
-        return item;
+        return <ReactMarkdown>{item}</ReactMarkdown>; // Use ReactMarkdown for strings
     }
 
     if (typeof item === 'object' && item !== null) {
-        if (item.type && item.rationale) {
-            return `${item.type}: ${item.rationale}`;
+        // Handle alternative options
+        if (item.option && item.clinical_rationale) {
+            return (
+                <>
+                    <strong>{item.option}</strong>
+                    <ReactMarkdown>{item.clinical_rationale}</ReactMarkdown>
+                </>
+            );
         }
-        return JSON.stringify(item);
+        // If it's an object but doesn't fit the alternative option structure,
+        // it might be the clinical_rationale itself if it's a structured object.
+        // For now, fall back to JSON.stringify if not handled.
+        return <ReactMarkdown>{JSON.stringify(item, null, 2)}</ReactMarkdown>;
     }
 
-    return 'Invalid item';
+    return 'Invalid item'; // Fallback for truly invalid items
   };
 
   return (

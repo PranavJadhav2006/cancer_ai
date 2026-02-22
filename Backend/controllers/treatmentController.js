@@ -2,7 +2,7 @@ const TreatmentPlan = require('../models/TreatmentPlan');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
 const axios = require('axios');
-const { formatEvidenceWithOllama, generatePathwayWithOllama } = require('../utils/ollamaFormatter');
+
 
 const { generateMockAnalysis } = require('../utils/aiSimulator');
 
@@ -20,7 +20,8 @@ exports.generatePathway = async (req, res) => {
             });
         }
 
-        const pathway = await generatePathwayWithOllama(plan);
+        const aiEngineResponse = await axios.post('http://127.0.0.1:5000/generate_pathway', { plan });
+        const pathway = aiEngineResponse.data.pathway;
 
         res.json({
             success: true,
@@ -99,8 +100,9 @@ exports.generateFormattedPlan = async (req, res) => {
         let formattedEvidence = rawPlan.formatted_evidence;
         
         if (!formattedEvidence && evidence && evidence.length > 0) {
-            console.log('No pre-formatted evidence found. Calling Ollama formatter...');
-            formattedEvidence = await formatEvidenceWithOllama(evidence);
+            console.log('No pre-formatted evidence found. Calling AI Engine for formatting...');
+            const formatResponse = await axios.post('http://127.0.0.1:5000/format_evidence', { evidence });
+            formattedEvidence = formatResponse.data.formattedText;
         } else if (!formattedEvidence) {
             formattedEvidence = "No specific evidence provided for formatting.";
         }

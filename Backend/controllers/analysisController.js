@@ -1,7 +1,7 @@
 const Analysis = require('../models/Analysis');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process'); // Import spawn
 const path = require('path');
 
 const { generateMockAnalysis, simulateProcessing } = require('../utils/aiSimulator');
@@ -139,7 +139,7 @@ exports.processAnalysis = async (req, res) => {
         // Update status to processing
         await analysis.update({ status: 'processing' });
 
-        const startTime = Date.now();
+        const startTime = Date.now(); // Corrected capitalization
 
         // Path to the python script
         const baseDir = path.resolve(__dirname, '../../Segmentation Model');
@@ -161,43 +161,70 @@ exports.processAnalysis = async (req, res) => {
 
         // Construct arguments
         let scriptArgs = [];
-        if (mriPaths.t1) scriptArgs.push(`--t1 "${mriPaths.t1}"`);
-        if (mriPaths.t1ce) scriptArgs.push(`--t1ce "${mriPaths.t1ce}"`);
-        if (mriPaths.t2) scriptArgs.push(`--t2 "${mriPaths.t2}"`);
-        if (mriPaths.flair) scriptArgs.push(`--flair "${mriPaths.flair}"`);
+        if (mriPaths.t1) scriptArgs.push('--t1', mriPaths.t1);
+        if (mriPaths.t1ce) scriptArgs.push('--t1ce', mriPaths.t1ce);
+        if (mriPaths.t2) scriptArgs.push('--t2', mriPaths.t2);
+        if (mriPaths.flair) scriptArgs.push('--flair', mriPaths.flair);
 
         // Validation: At least FLAIR is needed for the current model base, or just warn
         if (!mriPaths.flair && scriptArgs.length === 0) {
              // Fallback to test data if absolutely nothing is provided
              const defaultFlair = path.join(baseDir, 'Test_Data/BraTS20_Training_001_flair.nii');
              console.log("No MRI provided, using default test data.");
-             scriptArgs.push(`--flair "${defaultFlair}"`);
+             scriptArgs.push('--flair', defaultFlair);
         }
 
         console.log(`Executing segmentation script: ${scriptPath}`);
         console.log(`Args: ${scriptArgs.join(' ')}`);
 
-        const runScript = (name, args = []) => {
+        // Refactored runScript to use spawn
+        const runScript = (name, argsArray = []) => {
             return new Promise((resolve, reject) => {
                 const sPath = path.join(scriptDir, name);
-                // Join args array with spaces, but don't double quote if already quoted
-                const cmd = `python "${sPath}" ${args.join(' ')}`;
-                console.log(`Running command: ${cmd}`);
+                const pythonExecutable = "C:\\Users\\PRANAV JADHAV\\anaconda3\\envs\\my_project_env\\python.exe";
                 
-                exec(cmd, { cwd: scriptDir }, (error, stdout, stderr) => {
-                    if (error) {
-                        console.error(`Error in ${name}: ${error}`);
+                // The first argument to spawn is the executable, the second is an array of args
+                const spawnArgs = [
+                    sPath,
+                    ...argsArray
+                ];
+
+                console.log(`Running command: ${pythonExecutable} ${spawnArgs.join(' ')}`);
+                
+                // Use shell: false (default) and let spawn handle quoting
+                const child = spawn(pythonExecutable, spawnArgs, { cwd: scriptDir }); 
+
+                let stdout = '';
+                let stderr = '';
+
+                child.stdout.on('data', (data) => {
+                    stdout += data.toString();
+                });
+
+                child.stderr.on('data', (data) => {
+                    stderr += data.toString();
+                });
+
+                child.on('close', (code) => {
+                    if (code !== 0) {
+                        const error = new Error(`Error in ${name} (code ${code}): ${stderr}`);
+                        console.error(`Error in ${name}: ${stderr}`);
                         reject(error);
                         return;
                     }
                     console.log(`stdout ${name}: ${stdout}`);
                     resolve(stdout);
                 });
+
+                child.on('error', (err) => {
+                    console.error(`Failed to start subprocess ${name}:`, err);
+                    reject(err);
+                });
             });
         };
 
         try {
-             // Pass separate arguments
+             // Pass arguments as an array directly
              const stdout = await runScript('infer_segmentation.py', scriptArgs);
              
              // 1. Create unique directory for this analysis
@@ -248,7 +275,7 @@ exports.processAnalysis = async (req, res) => {
              
              let updateData = {
                  status: 'completed',
-                 processingTime: Date.now() - startTime
+                 processingTime: Date.now() - startTime // Corrected capitalization
              };
 
              if (metrics.tumor_volume) {
@@ -335,6 +362,7 @@ exports.getSlice = async (req, res) => {
         }
 
         const scriptPath = path.join(baseDir, 'Inference_Pipeline/extract_slice.py');
+        const pythonExecutable = "C:\\Users\\PRANAV JADHAV\\anaconda3\\envs\\my_project_env\\python.exe"; // Define here
 
         // Check if file exists before running python
         const fs = require('fs');
@@ -343,16 +371,44 @@ exports.getSlice = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Slice data not ready' });
         }
 
-        // Execute Python script with plane argument
-        exec(`python "${scriptPath}" "${filePath}" "${fileType}" "${index}" "${type}" "${plane || 'axial'}"`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Slice extraction error: ${error}`);
+        // Refactor to use spawn for getSlice
+        const spawnArgs = [
+            scriptPath,
+            filePath,
+            fileType,
+            index,
+            type,
+            plane || 'axial'
+        ];
+
+        console.log(`Running getSlice command: ${pythonExecutable} ${spawnArgs.join(' ')}`);
+
+        const child = spawn(pythonExecutable, spawnArgs);
+
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+
+        child.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+
+        child.on('close', (code) => {
+            if (code !== 0) {
+                console.error(`Slice extraction error (code ${code}): ${stderr}`);
                 return res.status(500).send('Error extracting slice');
             }
-            
             // output is the base64 string
             const imgData = stdout.trim();
             res.json({ success: true, image: `data:image/png;base64,${imgData}` });
+        });
+
+        child.on('error', (err) => {
+            console.error(`Failed to start slice subprocess:`, err);
+            return res.status(500).send('Error extracting slice');
         });
 
     } catch (error) {

@@ -16,7 +16,7 @@ else:
     print("[AI ENGINE] WARNING: GEMINI_API_KEY NOT FOUND. System will use local fallback model.")
 
 from rule_engine import run_rules
-from llm.llm_chain import generate_treatment_plan, predict_outcomes, query_treatment_plan
+from llm.llm_chain import generate_treatment_plan, predict_outcomes, query_treatment_plan, format_evidence_llm, format_pathway_llm
 from utils.vcf_parser import parse_vcf
 from utils.formatter import format_multimodal_data # Import the new formatter
 from utils.outcome_engine import engine as outcome_engine # Import the new Outcome Engine
@@ -717,7 +717,7 @@ def predict_side_effects_route():
         if age is not None:
             age = int(age)
         rules = run_rules(patient_data_for_llm, cancer_type)
-        plan_data, evidence = generate_treatment_plan(
+        plan_data, evidence, _ = generate_treatment_plan(
             patient=multimodal_summary,
             rules=rules,
             evidence_levels=rules.get("evidence_levels", []),
@@ -729,6 +729,9 @@ def predict_side_effects_route():
         # 2. Extract Drugs from Plan for Toxicity Check
         # Simple extraction from the primary treatment string
         primary_tx = plan_data.get("primary_treatment", "")
+        if isinstance(primary_tx, dict):
+            primary_tx = primary_tx.get("treatment", "")
+
         potential_drugs = primary_tx.replace('+', ',').replace('/', ',').split(',')
         drugs_list = [d.strip() for d in potential_drugs]
 
@@ -866,6 +869,48 @@ def process_vcf_route():
         return jsonify({"error": result.get("error", "VCF Parsing failed")}), 500
 
     return jsonify(result)
+
+@app.route('/format_evidence', methods=['POST'])
+def format_evidence_route():
+    try:
+        data = request.get_json()
+        if not data or 'evidence' not in data:
+            return jsonify({"error": "No evidence provided"}), 400
+        
+        evidence_list = data['evidence']
+        formatted_text = format_evidence_llm(evidence_list)
+        
+        return jsonify({
+            "success": True,
+            "formattedText": formatted_text
+        })
+    except Exception as e:
+        print(f"Error in format_evidence_route: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/generate_pathway', methods=['POST'])
+def generate_pathway_route():
+    try:
+        data = request.get_json()
+        if not data or 'plan' not in data:
+            return jsonify({"error": "No plan provided"}), 400
+        
+        plan = data['plan']
+        formatted_pathway = format_pathway_llm(plan)
+        
+        return jsonify({
+            "success": True,
+            "pathway": formatted_pathway
+        })
+    except Exception as e:
+        print(f"Error in generate_pathway_route: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

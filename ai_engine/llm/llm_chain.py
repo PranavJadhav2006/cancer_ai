@@ -226,6 +226,98 @@ def get_fallback_outcomes(p):
         "quality_of_life": q
     }
 
+def format_evidence_llm(evidence_list):
+    if not evidence_list or not CLIENT:
+        return "No specific evidence or LLM client available for formatting."
+
+    all_evidence_text = "\n\n---\n\n".join([f"- {e['text']}" for e in evidence_list])
+
+    prompt = f"""
+        You are a clinical assistant AI. Your task is to synthesize and format medical evidence into a clear, concise summary for an oncologist.
+        
+        CRITICAL INSTRUCTIONS:
+        - Provide ONLY the formatted clinical synthesis.
+        - DO NOT include any greetings, introductions, or closing statements.
+        - DO NOT include any generic supportive language.
+        - Start directly with the evidence synthesis.
+
+        The following is a list of evidence snippets from various sources (e.g., NCCN guidelines, clinical trial results).
+        Please format this information into a structured summary. Use markdown for formatting, such as bolding for headers and bullet points for lists.
+
+        Do not simply list the evidence. Synthesize it. Group related findings, highlight key takeaways, and present it in a logical order.
+
+        Here is the evidence to format:
+        {all_evidence_text}
+    """
+
+    try:
+        if PROVIDER == "github":
+            print(f"[LLM] Initiating GitHub ({ENV_KEYS['GITHUB_MODEL']}) request for EVIDENCE FORMATTING...")
+            response = CLIENT.chat.completions.create(model=ENV_KEYS["GITHUB_MODEL"], messages=[{"role": "user", "content": prompt}], temperature=0.1)
+            text = response.choices[0].message.content
+            print(f"[LLM] GitHub Evidence Formatting response received ({len(text)} bytes).")
+        elif PROVIDER == "ollama":
+            print(f"[LLM] Initiating Ollama ({ENV_KEYS['OLLAMA_MODEL']}) request for EVIDENCE FORMATTING...")
+            response = CLIENT.chat(model=ENV_KEYS["OLLAMA_MODEL"], messages=[{"role": "user", "content": prompt}], format='json', options=OLLAMA_OPTIONS)
+            text = response['message']['content']
+            print(f"[LLM] Ollama Evidence Formatting response received ({len(text)} bytes).")
+        else: # Gemini
+            print(f"[LLM] Initiating Gemini ({ENV_KEYS['GEMINI_MODEL']}) request for EVIDENCE FORMATTING...")
+            response = CLIENT.models.generate_content(model=ENV_KEYS["GEMINI_MODEL"], contents=prompt, config=google_types.GenerateContentConfig(temperature=0.1))
+            text = response.text
+            print(f"[LLM] Gemini Evidence Formatting response received ({len(text)} bytes).")
+        
+        return text.strip()
+    except Exception as e:
+        print(f"[LLM ERROR] Evidence formatting failed: {e}")
+        # Fallback to simple formatting if LLM fails
+        return "**Clinical Evidence Summary (Fallback)**\n\n" + "\n\n---\n\n".join([f"- {e['text']}" for e in evidence_list])
+
+def format_pathway_llm(plan):
+    if not plan or not CLIENT:
+        return [] # Return empty list if no plan or LLM client
+
+    recommended_protocol = plan.get('recommendedProtocol', 'Standard Protocol')
+    rationale = plan.get('rationale', 'No rationale provided.')
+    alternatives = ", ".join([alt.get('option', '') if isinstance(alt, dict) else alt for alt in plan.get('alternativeOptions', [])])
+
+    prompt = f"""
+    You are an AI clinical pathway generator. Create a detailed 12-week timeline for:
+    Protocol: {recommended_protocol}
+    Rationale: {rationale}
+    Alternatives: {alternatives}
+
+    Output ONLY a JSON array of objects with keys: "title", "duration", "description", "details" (string array), "marker" (emoji).
+    Weeks 1 to 12.
+    """
+
+    try:
+        if PROVIDER == "github":
+            print(f"[LLM] Initiating GitHub ({ENV_KEYS['GITHUB_MODEL']}) request for PATHWAY GENERATION...")
+            response = CLIENT.chat.completions.create(model=ENV_KEYS["GITHUB_MODEL"], messages=[{"role": "user", "content": prompt}], temperature=0.1)
+            text = response.choices[0].message.content
+            print(f"[LLM] GitHub Pathway Generation response received ({len(text)} bytes).")
+        elif PROVIDER == "ollama":
+            print(f"[LLM] Initiating Ollama ({ENV_KEYS['OLLAMA_MODEL']}) request for PATHWAY GENERATION...")
+            response = CLIENT.chat(model=ENV_KEYS["OLLAMA_MODEL"], messages=[{"role": "user", "content": prompt}], format='json', options=OLLAMA_OPTIONS)
+            text = response['message']['content']
+            print(f"[LLM] Ollama Pathway Generation response received ({len(text)} bytes).")
+        else: # Gemini
+            print(f"[LLM] Initiating Gemini ({ENV_KEYS['GEMINI_MODEL']}) request for PATHWAY GENERATION...")
+            response = CLIENT.models.generate_content(model=ENV_KEYS["GEMINI_MODEL"], contents=prompt, config=google_types.GenerateContentConfig(temperature=0.1))
+            text = response.text
+            print(f"[LLM] Gemini Pathway Generation response received ({len(text)} bytes).")
+        
+        # Extract JSON from response
+        json_match = re.search(r'\[\s*\{.*\}\s*\]', text.strip(), re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(0))
+        raise ValueError("JSON array parsing failed for pathway.")
+    except Exception as e:
+        print(f"[LLM ERROR] Pathway generation failed: {e}")
+        return [] # Fallback to empty list
+
+
 def query_treatment_plan(patient, plan, query, cancer, history=None):
     """
     NEURO-SYMBOLIC CHATBOT: 

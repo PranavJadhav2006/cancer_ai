@@ -7,13 +7,66 @@ import './LoadingSpinner.css'; // New CSS file for spinner
 // ... (rest of imports) ...
 
 // Simple Loading Spinner Component
-const LoadingSpinner = () => (
-  <div className="loading-container">
-    <svg className="spinner" viewBox="0 0 50 50">
-      <circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="5"></circle>
-    </svg>
-    <span className="loading-text text-secondary" style={{ fontFamily: '"Space Grotesk"' }}>Engine is calculating projections...</span>
-  </div>
+const ProcessingOverlay = () => (
+  <motion.div 
+    initial={{ opacity: 0 }} 
+    animate={{ opacity: 1 }} 
+    exit={{ opacity: 0 }}
+    style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'rgba(7, 11, 20, 0.9)',
+      backdropFilter: 'blur(10px)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+    }}
+  >
+    <Box sx={{ position: 'relative', width: 200, height: 200, mb: 4 }}>
+      {/* Outer Pulse */}
+      <motion.div
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 3, repeat: Infinity }}
+        style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          border: '2px solid #5B6FF6', boxShadow: '0 0 40px rgba(91, 111, 246, 0.4)'
+        }}
+      />
+      {/* Middle Rotating Ring */}
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        style={{
+          position: 'absolute', inset: 20, borderRadius: '50%',
+          border: '2px dashed #21D4BD', opacity: 0.5
+        }}
+      />
+      {/* Center Icon */}
+      <Box sx={{ 
+        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}>
+        <TimelineIcon sx={{ fontSize: 80, color: '#fff' }} />
+      </Box>
+    </Box>
+
+    <Typography variant="h4" sx={{ fontFamily: 'Rajdhani', fontWeight: 700, color: '#fff', mb: 1 }}>
+      AI OUTCOME PREDICTION
+    </Typography>
+    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+      <motion.div
+        animate={{ opacity: [0, 1, 0] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
+        <Typography variant="body1" sx={{ color: '#21D4BD', fontFamily: 'Space Grotesk', fontWeight: 600 }}>
+          ANALYZING SURVIVAL CURVES & TOXICITY PROFILES...
+        </Typography>
+      </motion.div>
+    </Box>
+    
+    <Box sx={{ width: 300, mt: 4 }}>
+      <LinearProgress sx={{ 
+        height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.1)',
+        '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, #5B6FF6, #21D4BD)' }
+      }} />
+    </Box>
+  </motion.div>
 );
 
 // ... (rest of the file) ...
@@ -582,6 +635,9 @@ function OutcomePrediction() {
 
   return (
     <>
+      <AnimatePresence>
+        {loading && <ProcessingOverlay />}
+      </AnimatePresence>
       <div className="container outcome-container">
         <div className="flex justify-between items-center mb-xl" style={{ marginTop: '2rem' }}>
           <div>
@@ -593,8 +649,7 @@ function OutcomePrediction() {
             </Typography>
           </div>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            {loading && <LoadingSpinner />}
-            {outcomeData && !isPatient && (
+            {outcomeData && !isPatient && ( // Only show button when outcomeData is available
               <Button 
                 variant="outlined" 
                 startIcon={<AutoAwesomeIcon />}
@@ -608,15 +663,13 @@ function OutcomePrediction() {
           </Box>
         </div>
 
-        {!outcomeData && !loading && (
+        {!loading && !outcomeData ? ( // Show "No Patient Data Linked" when not loading and no outcomeData
             <div className="card-glass text-center" style={{ padding: '4rem' }}>
                 <ErrorOutlineIcon sx={{ fontSize: 48, color: '#64748B', mb: 2 }} />
                 <Typography variant="h6" sx={{ color: '#94A3B8' }}>No Patient Data Linked</Typography>
                 <Typography variant="body2" sx={{ color: '#64748B' }}>Please access this page from a valid patient profile to view predictions.</Typography>
             </div>
-        )}
-
-        {outcomeData && (
+        ) : !loading && outcomeData && ( // Show actual content when not loading and outcomeData is available
           <>
             {/* Key Predictions */}
             <div className="prediction-grid">
@@ -667,7 +720,7 @@ function OutcomePrediction() {
               <h3>Predicted Side Effects & Toxicity</h3>
 
               {loading ? (
-                  <div className="text-secondary">Calculating risks...</div>
+                  <LoadingSpinner />
               ) : formattedSideEffects ? (
                   <div className="side-effects-summary-box">
                       {formatMarkdown(formattedSideEffects)}
