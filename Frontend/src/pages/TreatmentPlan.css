@@ -280,3 +280,57 @@
     border-color: rgba(255, 255, 255, 0.3);
     color: #fff;
 }
+
+/* Institutional Experience Match Styles */
+.experience-match-panel {
+    background: linear-gradient(135deg, rgba(33, 212, 189, 0.15) 0%, rgba(11, 18, 33, 0.05) 100%) !important;
+    border: 1px solid rgba(33, 212, 189, 0.4) !important;
+    box-shadow: 0 0 30px rgba(33, 212, 189, 0.1) !important;
+}
+
+.experience-match-panel::before {
+    background: #21D4BD !important;
+}
+
+.experience-case-card {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(33, 212, 189, 0.2);
+    border-radius: 10px;
+    padding: 1.25rem;
+    min-width: 300px;
+    flex: 1;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.experience-case-card:hover {
+    border-color: rgba(33, 212, 189, 0.5);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.case-id {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.65rem;
+    color: #64748B;
+    letter-spacing: 1px;
+}
+
+.similarity-tag {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #21D4BD;
+}
+
+.correction-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(91, 111, 246, 0.2);
+    color: #5B6FF6;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    border: 1px solid rgba(91, 111, 246, 0.3);
+}

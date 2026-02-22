@@ -102,6 +102,59 @@ const ProcessingOverlay = () => (
   </motion.div>
 );
 
+// --- NEW COMPONENT: INSTITUTIONAL EXPERIENCE MATCH ---
+const InstitutionalExperienceMatch = ({ experiences = [] }) => {
+  if (!experiences || experiences.length === 0) return null;
+
+  return (
+    <div className="intelligence-panel experience-match-panel">
+      <div className="intelligence-icon-box">
+        <PsychologyIcon sx={{ color: '#21D4BD', fontSize: 32 }} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <Typography variant="overline" sx={{ color: '#21D4BD', fontWeight: 800, letterSpacing: '2px', display: 'block' }}>
+          INSTITUTIONAL CASE CORRELATION
+        </Typography>
+        <Typography variant="h6" sx={{ color: '#fff', fontFamily: '"Rajdhani"', fontWeight: 700, mt: 0.5 }}>
+          Correlating current profile with {experiences.length} successful local outcome{experiences.length > 1 ? 's' : ''}
+        </Typography>
+        
+        <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
+          {experiences.map((exp, idx) => {
+            const isCorrection = exp.text.includes('CLINICAL_CORRECTION');
+            return (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.2 }}
+                className="experience-case-card"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className="case-id">ANONYMIZED REF: {exp.patient_id.substring(0, 8)}</span>
+                  <span className="similarity-tag">{Math.round(exp.similarity_score * 100)}% PROFILE MATCH</span>
+                </div>
+                <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mb: 0.5, fontWeight: 700 }}>
+                  HISTORICAL PROTOCOL APPLIED:
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#E2E8F0', fontWeight: 600, mb: 1.5 }}>
+                  {exp.treatment_plan.primary_treatment}
+                </Typography>
+                {isCorrection && (
+                  <div className="correction-badge">
+                    <AutoAwesomeIcon sx={{ fontSize: 12, mr: 0.5 }} />
+                    EXPERT VALIDATED
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </Box>
+      </div>
+    </div>
+  );
+};
+
 function TreatmentPlan() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,6 +162,7 @@ function TreatmentPlan() {
   const [loading, setLoading] = useState(false);
   const [treatmentData, setTreatmentData] = useState({});
   const [evidence, setEvidence] = useState([]);
+  const [experiences, setExperiences] = useState([]); // New state for clinical memory
   const [cancerType, setCancerType] = useState('Breast');
   const [patientData, setPatientData] = useState({
     stage: '0',
@@ -174,6 +228,7 @@ function TreatmentPlan() {
     if (forceRefresh || !treatmentData?.id) {
         setTreatmentData({});
         setEvidence([]);
+        setExperiences([]); // Clear old memories
     }
 
     try {
@@ -194,12 +249,17 @@ function TreatmentPlan() {
         recommendedProtocol: rawPlan.primary_treatment || 'See plan details',
         confidence: result.confidence || 92.0,
         planData: rawPlan,
-        guidelineAlignment: 'AI-Generated Evidence Base',
+        guidelineAlignment: result.isCached ? 'Institutional Archive Record' : 'AI-Generated Evidence Base',
         protocols: result.protocols || []
       }));
       
       // Use the Gemini-formatted evidence
       setEvidence([{ source: 'AI Clinical Summary', text: formattedEvidence }]);
+      
+      // SET EXPERIENCES (Always set from response)
+      if (result.experiences) {
+        setExperiences(result.experiences);
+      }
 
     } catch (error) {
       console.error("Failed to generate treatment plan:", error);
@@ -677,6 +737,9 @@ function TreatmentPlan() {
         {/* PRIMARY RECOMMENDATION & INTELLIGENCE */}
         {treatmentData && treatmentData.planData && (
           <>
+            {/* NEW: Institutional Learning Match Component */}
+            <InstitutionalExperienceMatch experiences={experiences} />
+
             {/* 1. TOP-TIER INTELLIGENCE PANEL */}
             {treatmentData.planData.personalization_insight && (
                 <div className="intelligence-panel">

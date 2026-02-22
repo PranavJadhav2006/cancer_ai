@@ -16,6 +16,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import DescriptionIcon from '@mui/icons-material/Description';
 import MedicationIcon from '@mui/icons-material/Medication';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 
 // ... (colors and StatItem, PatientRow remain the same)
 const colors = {
@@ -485,6 +486,24 @@ const Dashboard = () => {
                 <MenuItem key={type} onClick={() => handleFilterClose(type)} sx={{ fontFamily: '"Rajdhani"', fontWeight: 600 }}>{type.toUpperCase()}</MenuItem>
               ))}
             </Menu>
+
+            {/* Institutional Knowledge Button (Clinician/Admin only) */}
+            {!isPatient && (
+              <Button
+                variant="outlined"
+                startIcon={<PsychologyIcon />}
+                onClick={() => navigate('/knowledge-kernel')}
+                sx={{
+                  borderColor: colors.purple,
+                  color: colors.purple,
+                  fontFamily: '"Space Grotesk"',
+                  fontWeight: 700,
+                  '&:hover': { borderColor: colors.cyan, color: colors.cyan, bgcolor: 'rgba(0, 240, 255, 0.05)' }
+                }}
+              >
+                INSTITUTIONAL KNOWLEDGE
+              </Button>
+            )}
 
             {isDoctor && (
               <Button

@@ -16,28 +16,28 @@ const intelligenceData = [
     title: "Multimodal Staging",
     subtitle: "MRI · CT · PET Fusion",
     desc: "AI-driven tumor volume and staging analysis for Glioma (WHO), Breast (TNM), and Lung (I-IV) cancers using voxel-level precision.",
-    img: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=1200&q=80",
+    img: "/Multimodal Staging.png",
   },
   {
     id: "02",
     title: "Uncertainty Engine",
     subtitle: "Confidence Intervals · Risk Flags",
     desc: "Calculates confidence levels for every prediction (95% CI). Automatically flags low-certainty outliers for manual Tumor Board review.",
-    img: "https://plus.unsplash.com/premium_photo-1682124752476-40db22034a58?auto=format&fit=crop&w=1200&q=80",
+    img: "/Uncertainity Engine.png",
   },
   {
     id: "03",
     title: "Genomic Decoder",
     subtitle: "IDH1 · HER2 · EGFR · KRAS · HBV",
     desc: "Automated interpretation of VCF files to map mutations to targeted therapies, identifying drug sensitivity and resistance markers.",
-    img: "https://images.unsplash.com/photo-1579165466741-7f35a4755657?auto=format&fit=crop&w=1200&q=80",
+    img: "/Genomic Decoder.png",
   },
   {
     id: "04",
     title: "Resource Optimization",
     subtitle: "Cost-Utility Analysis",
     desc: "Recommends protocols balancing survival outcomes with QALYs, hospital resource availability, and patient financial constraints.",
-    img: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=1200&q=80",
+    img: "/Resource Optimization.png",
   }
 ];
 
@@ -48,28 +48,28 @@ const featuresData = [
     title: "3D & AR/VR Digital Twin",
     subtitle: "Surgical Planning · Vascular Overlay",
     desc: "Interactive 3D organ and tumor reconstruction (Brain, Lung, Liver) with vascular overlay for surgical planning and patient education.",
-    img: "https://images.unsplash.com/photo-1617791160505-6f00504e3519?auto=format&fit=crop&w=1200&q=80",
+    img: "/BD AR-VR.png",
   },
   {
     id: "02",
     title: "Multi-Disciplinary Board",
     subtitle: "Automated Reporting · PDF Generation",
     desc: "One-click generation of Tumor Board Summaries merging pathology, radiology, and genomic panels into a single meeting-ready PDF.",
-    img: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80",
+    img: "/Multidisciplinary Board.png",
   },
   {
     id: "03",
     title: "Adaptive Pathway Simulator",
     subtitle: "Longitudinal Projection · Decision Branching",
     desc: "Simulate complex treatment journeys over 18-24 months, modeling 'what-if' scenarios for response, recurrence, and toxicity management.",
-    img: "https://images.unsplash.com/photo-1504868584819-f8e90526354c?auto=format&fit=crop&w=1200&q=80",
+    img: "/Adaptive Pathway Simulator.png",
   },
   {
     id: "04",
     title: "Evidence-Anchored Reasoning Hub",
     subtitle: "Semantic Mapping · NCCN Guideline Citations",
     desc: "Every treatment protocol is anchored to live-retrieved NCCN guidelines and peer-reviewed journals, providing clinicians with a transparent, auditable reasoning chain.",
-    img: "https://images.unsplash.com/photo-1454165833767-027ffea9e77b?auto=format&fit=crop&w=1200&q=80",
+    img: "/Evidence Anchored Reasoning Lab.png",
   }
 ];
 
@@ -80,6 +80,15 @@ function Home() {
     <>
       {/* Hero Section */}
       <section className="hero">
+        <video 
+          autoPlay 
+          muted 
+          loop 
+          playsInline 
+          className="hero-video-bg"
+        >
+          <source src="/bg-video.mp4" type="video/mp4" />
+        </video>
         <div className="hero-grid-overlay"></div>
         <div className="hero-content">
           <div className="hero-title-box">

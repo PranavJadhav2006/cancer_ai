@@ -4,12 +4,16 @@ const {
     getPatientOutcomes,
     getOutcome,
     createOutcome,
-    generateFormattedOutcomes
+    generateFormattedOutcomes,
+    downloadReport
 } = require('../controllers/outcomeController');
 const { protect } = require('../middleware/auth');
 
 router.route('/predict-formatted')
     .post(protect, generateFormattedOutcomes);
+
+router.route('/download-report')
+    .post(protect, downloadReport);
 
 router.route('/')
     .post(protect, createOutcome);

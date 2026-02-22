@@ -20,9 +20,12 @@ from llm.llm_chain import generate_treatment_plan, predict_outcomes, query_treat
 from utils.vcf_parser import parse_vcf
 from utils.formatter import format_multimodal_data # Import the new formatter
 from utils.outcome_engine import engine as outcome_engine # Import the new Outcome Engine
+from utils.report_generator import generate_cancer_report # Import the report generator
+from utils.clinical_memory import save_experience, retrieve_similar_experience, get_memory_stats # Update imports
 import re
 import random
 import pdfplumber
+import os
 import spacy
 from datetime import datetime
 
@@ -36,6 +39,75 @@ except Exception as e:
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route('/generate_report', methods=['POST'])
+def generate_report_route():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
+        patient_name = data.get('name', 'Patient').replace(' ', '_')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{patient_name}_{timestamp}_Summary.pdf"
+        
+        # Ensure reports directory exists
+        # Use absolute path based on workspace root
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        reports_dir = os.path.join(base_dir, 'reports')
+        os.makedirs(reports_dir, exist_ok=True)
+        
+        output_path = os.path.join(reports_dir, filename)
+        
+        # Call the utility function
+        generate_cancer_report(output_path, data)
+        
+        return jsonify({
+            "success": True,
+            "message": "Report generated successfully",
+            "filename": filename,
+            "path": output_path
+        })
+    except Exception as e:
+        print(f"Error in generate_report_route: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/learn_from_case', methods=['POST'])
+def learn_from_case_route():
+    """
+    Endpoint to trigger 'learning' by indexing a finalized case into FAISS memory.
+    """
+    try:
+        data = request.get_json()
+        patient_data = data.get('patient_data')
+        treatment_plan = data.get('treatment_plan')
+        feedback_score = data.get('feedback_score', 1.0)
+        is_correction = data.get('is_correction', False)
+
+        if not patient_data or not treatment_plan:
+            return jsonify({"error": "Missing patient_data or treatment_plan"}), 400
+
+        success = save_experience(patient_data, treatment_plan, feedback_score, is_correction)
+        
+        return jsonify({
+            "success": success,
+            "message": f"Case {'correction' if is_correction else 'experience'} successfully added to memory."
+        })
+    except Exception as e:
+        print(f"Error in learn_from_case_route: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/memory_stats', methods=['GET'])
+def memory_stats_route():
+    """
+    Returns aggregated learning statistics from the local memory store.
+    """
+    try:
+        stats = get_memory_stats()
+        return jsonify(stats)
+    except Exception as e:
+        print(f"Error in memory_stats_route: {e}")
+        return jsonify({"error": str(e)}), 500
 
 def extract_text_from_pdf(file_path):
     """Extracts text from a PDF file using pdfplumber."""
@@ -276,7 +348,7 @@ def process_report_file():
     if patient_data.get('IDH1'): queries.append(f"{cancer_type} IDH1 {patient_data['IDH1']}")
 
     # Call LLM with full context
-    plan_data, evidence = generate_treatment_plan(
+    plan_data, evidence, experiences = generate_treatment_plan(
         patient=multimodal_summary, 
         rules=rules,
         evidence_levels=rules.get("evidence_levels", []), # New param
@@ -341,6 +413,7 @@ def process_report_file():
     return jsonify({
         'plan': plan_data,
         'evidence': evidence,
+        'experiences': experiences,
         'extracted_data': patient_data,
         'confidence': round(dynamic_confidence, 1),
         'protocols': protocols
@@ -391,7 +464,7 @@ def process_report_text():
     if patient_data.get('MGMT'): queries.append(f"{cancer_type} MGMT {patient_data['MGMT']}")
 
     # Call LLM with full context
-    plan_data, evidence = generate_treatment_plan(
+    plan_data, evidence, experiences = generate_treatment_plan(
         patient=multimodal_summary,
         rules=rules,
         evidence_levels=rules.get("evidence_levels", []), # New param
@@ -438,6 +511,7 @@ def process_report_text():
     return jsonify({
         'plan': plan_data,
         'evidence': evidence,
+        'experiences': experiences,
         'extracted_data': patient_data,
         'protocols': protocols,
         'confidence': round(dynamic_confidence, 1)
@@ -503,7 +577,7 @@ def recommend_treatment():
         rules = run_rules(patient_data_for_llm, cancer_type)
         
         # Step 3: Generate treatment plan using LLM
-        plan_data, evidence = generate_treatment_plan(
+        plan_data, evidence, experiences = generate_treatment_plan(
             patient=multimodal_summary, # Pass the concise summary instead of the full object
             rules=rules, 
             evidence_levels=rules.get("evidence_levels", []),
@@ -570,6 +644,7 @@ def recommend_treatment():
         return jsonify({
             'plan': plan_data,
             'evidence': evidence,
+            'experiences': experiences, # Return structured experiences
             'protocols': protocols,
             'confidence': round(dynamic_confidence, 1)
         })

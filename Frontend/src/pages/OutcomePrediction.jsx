@@ -2,6 +2,27 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import './OutcomePrediction.css';
+import './LoadingSpinner.css'; // New CSS file for spinner
+
+// ... (rest of imports) ...
+
+// Simple Loading Spinner Component
+const LoadingSpinner = () => (
+  <div className="loading-container">
+    <svg className="spinner" viewBox="0 0 50 50">
+      <circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="5"></circle>
+    </svg>
+    <span className="loading-text text-secondary" style={{ fontFamily: '"Space Grotesk"' }}>Engine is calculating projections...</span>
+  </div>
+);
+
+// ... (rest of the file) ...
+
+// Find the line to replace:
+// {loading && <div className="text-secondary" style={{ fontFamily: '"Space Grotesk"' }}>Engine is calculating projections...</div>}
+
+// This will be replaced with:
+// {loading && <LoadingSpinner />}
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -399,8 +420,46 @@ function OutcomePrediction() {
     });
   };
 
-  const downloadReport = () => {
-    alert("Report downloaded! (Simulation)");
+  const downloadReport = async () => {
+    try {
+        setLoading(true);
+        const params = new URLSearchParams(location.search);
+        const pid = params.get('patientId');
+
+        const response = await apiClient.post('/outcomes/download-report', {
+            patientId: pid,
+            formData,
+            outcomeData
+        }, {
+            responseType: 'blob'
+        });
+
+        // Create a URL for the blob
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Extract filename from content-disposition if available
+        const contentDisposition = response.headers['content-disposition'];
+        let fileName = `${formData.name.replace(/\s+/g, '_')}_Outcome_Report.pdf`;
+        if (contentDisposition) {
+            const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+            if (fileNameMatch.length === 2) fileName = fileNameMatch[1];
+        }
+
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading report:', error);
+        alert('Failed to download report. Please try again.');
+    } finally {
+        setLoading(false);
+    }
   };
 
   // Chart Data Configurations
@@ -534,7 +593,7 @@ function OutcomePrediction() {
             </Typography>
           </div>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            {loading && <div className="text-secondary" style={{ fontFamily: '"Space Grotesk"' }}>Engine is calculating projections...</div>}
+            {loading && <LoadingSpinner />}
             {outcomeData && !isPatient && (
               <Button 
                 variant="outlined" 

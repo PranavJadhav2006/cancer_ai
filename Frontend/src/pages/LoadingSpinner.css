@@ -1,0 +1,46 @@
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px; /* Space between spinner and text */
+}
+
+.spinner {
+  animation: rotate 2s linear infinite;
+  width: 25px;
+  height: 25px;
+}
+
+.spinner .path {
+  stroke: #00F0FF; /* Secondary accent color from Gemini.md */
+  stroke-linecap: round;
+  animation: dash 1.5s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+.loading-text {
+  /* Inherits text-secondary from MUI, but ensure visibility */
+  color: #94A3B8; /* Muted text color from Gemini.md */
+  font-family: '"Space Grotesk"', sans-serif;
+  font-size: 0.9rem;
+}

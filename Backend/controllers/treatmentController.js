@@ -52,14 +52,22 @@ exports.generateFormattedPlan = async (req, res) => {
             });
 
             // If plan exists and was created in the last 24 hours, return it
-            // (We allow re-generation if user specifically requests it, but for auto-load we use cache)
             if (existingPlan && !req.body.forceRefresh) {
                 console.log('Returning existing treatment plan from database.');
+                
+                // Still try to get experiences even for cached plans to show learning
+                let experiences = [];
+                try {
+                    const aiMemResponse = await axios.post('http://127.0.0.1:5000/recommend', req.body);
+                    experiences = aiMemResponse.data.experiences || [];
+                } catch (e) { console.log('Memory fetch failed for cache'); }
+
                 return res.json({
                     success: true,
                     treatmentId: existingPlan.id,
                     confidence: existingPlan.confidence,
-                    protocols: [], // We might not have saved protocol comparison in DB yet
+                    protocols: existingPlan.planData?.protocols || [],
+                    experiences: experiences, // Include memories
                     data: {
                         rawPlan: existingPlan.planData || {
                             primary_treatment: existingPlan.recommendedProtocol,
@@ -83,6 +91,7 @@ exports.generateFormattedPlan = async (req, res) => {
         // Extract the raw plan and evidence from the AI engine's response
         const rawPlan = rawTreatmentData.plan || 'No specific plan provided by AI engine.';
         const evidence = rawTreatmentData.evidence || (rawTreatmentData.plan && rawTreatmentData.plan.evidence) || [];
+        const experiences = rawTreatmentData.experiences || []; // Capture clinical memory
         const confidence = rawTreatmentData.confidence || 92.0;
         const protocols = rawTreatmentData.protocols || [];
 
@@ -138,6 +147,7 @@ exports.generateFormattedPlan = async (req, res) => {
             treatmentId: newPlanId,
             confidence: confidence,
             protocols: protocols,
+            experiences: experiences, // New field for UI
             data: {
                 rawPlan: rawPlan,
                 formattedEvidence: formattedEvidence
@@ -374,7 +384,9 @@ exports.updateTreatment = async (req, res) => {
 // @access  Private (Oncologist only)
 exports.approveTreatment = async (req, res) => {
     try {
-        let treatment = await TreatmentPlan.findByPk(req.params.id);
+        let treatment = await TreatmentPlan.findByPk(req.params.id, {
+            include: [{ model: Patient }]
+        });
 
         if (!treatment) {
             return res.status(404).json({
@@ -389,7 +401,36 @@ exports.approveTreatment = async (req, res) => {
             approvalDate: Date.now()
         });
 
+        // ─── Continuous Learning Trigger ───
+        // Notify AI Engine to index this approved case into its Long-Term Memory
+        try {
+            console.log(`[LEARNING] Sending approved case ${treatment.id} to AI Engine memory...`);
+            
+            // Detect if the clinician modified the original AI suggestion
+            const originalProtocol = treatment.planData?.primary_treatment || '';
+            const finalProtocol = treatment.recommendedProtocol || '';
+            
+            const isCorrection = originalProtocol && finalProtocol && 
+                               originalProtocol.toLowerCase().trim() !== finalProtocol.toLowerCase().trim();
 
+            if (isCorrection) {
+                console.log('[LEARNING] Detected Human Modification. Flagging as a supervised correction.');
+            }
+
+            await axios.post('http://127.0.0.1:5000/learn_from_case', {
+                patient_data: treatment.Patient ? treatment.Patient.toJSON() : {},
+                treatment_plan: {
+                    primary_treatment: finalProtocol,
+                    clinical_rationale: treatment.rationale,
+                    rationale: treatment.planData?.rationale || []
+                },
+                feedback_score: isCorrection ? 2.0 : 1.0, // Weight corrections more heavily
+                is_correction: isCorrection
+            });
+        } catch (learnErr) {
+            console.error('[LEARNING ERROR] Failed to update AI memory:', learnErr.message);
+            // Don't fail the approval if learning fails, just log it
+        }
 
         res.json({
             success: true,

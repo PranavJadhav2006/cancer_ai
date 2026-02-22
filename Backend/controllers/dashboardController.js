@@ -2,7 +2,43 @@ const Patient = require('../models/Patient');
 const Analysis = require('../models/Analysis');
 const TreatmentPlan = require('../models/TreatmentPlan');
 const User = require('../models/User');
+const axios = require('axios');
 const { Op, fn, col } = require('sequelize');
+
+// @desc    Get Institutional Knowledge Base stats from AI Engine
+// @route   GET /api/dashboard/institutional-knowledge
+// @access  Private (Clinician/Admin)
+exports.getInstitutionalKnowledge = async (req, res) => {
+    try {
+        if (req.user.role === 'patient') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        let aiData = {
+            total_cases: 0,
+            cancer_distribution: {},
+            recent_learnings: []
+        };
+
+        try {
+            const aiResponse = await axios.get('http://127.0.0.1:5000/memory_stats');
+            aiData = aiResponse.data;
+        } catch (aiError) {
+            console.warn('AI Memory Stats unavailable, using default:', aiError.message);
+        }
+        
+        res.json({
+            success: true,
+            data: aiData
+        });
+    } catch (error) {
+        console.error('Error fetching institutional knowledge:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve clinical memory statistics'
+        });
+    }
+};
 
 // @desc    Get dashboard statistics
 // @route   GET /api/dashboard/stats

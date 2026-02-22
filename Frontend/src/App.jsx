@@ -17,6 +17,7 @@ import TreatmentPlan from './pages/TreatmentPlan';
 import OutcomePrediction from './pages/OutcomePrediction';
 import PathwaySimulator from './pages/PathwaySimulator';
 import PatientProfile from './pages/PatientProfile';
+import KnowledgeKernel from './pages/KnowledgeKernel';
 import ClinicalBaselineDemo from './pages/ClinicalBaselineDemo';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -108,6 +109,7 @@ function App() {
               } />
               
               <Route path="/pathway-simulator" element={<ProtectedRoute><PathwaySimulator /></ProtectedRoute>} />
+              <Route path="/knowledge-kernel" element={<ProtectedRoute><KnowledgeKernel /></ProtectedRoute>} />
               <Route path="/baseline-demo" element={<ProtectedRoute><ClinicalBaselineDemo /></ProtectedRoute>} />
             </Routes>
           </Box>
