@@ -4,10 +4,7 @@ from dotenv import load_dotenv
 import os
 
 # Load environment variables
-if os.path.exists('../Backend/.env'):
-    load_dotenv('../Backend/.env')
-else:
-    load_dotenv()
+load_dotenv()
 
 api_key = os.getenv("GEMINI_API_KEY")
 if api_key:
@@ -52,9 +49,7 @@ def generate_report_route():
         filename = f"{patient_name}_{timestamp}_Summary.pdf"
         
         # Ensure reports directory exists
-        # Use absolute path based on workspace root
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-        reports_dir = os.path.join(base_dir, 'reports')
+        reports_dir = os.path.join(os.getcwd(), 'reports')
         os.makedirs(reports_dir, exist_ok=True)
         
         output_path = os.path.join(reports_dir, filename)
@@ -934,4 +929,7 @@ def generate_pathway_route():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    host = os.getenv('FLASK_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_PORT', 5000))
+    debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host=host, port=port, debug=debug)

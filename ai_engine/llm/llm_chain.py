@@ -4,7 +4,8 @@ import os
 import re
 import json
 import traceback
-import ollama
+# ollama is imported lazily inside _init_ollama_client() to avoid
+# crashing the module if the package is missing in the Docker image.
 from google import genai as google_genai
 from google.genai import types as google_types
 from openai import OpenAI
@@ -76,9 +77,13 @@ def _init_github_client():
 
 def _init_ollama_client():
     try:
+        import ollama  # Lazy import — only load when actually needed
         ollama.chat(model=ENV_KEYS["OLLAMA_MODEL"], messages=[{'role': 'user', 'content': 'ping'}], options={"num_predict": 1})
         print(f"[LLM] SUCCESS: Ollama ({ENV_KEYS['OLLAMA_MODEL']}) Active.")
         return ollama
+    except ImportError:
+        print("[LLM] Ollama Python package not installed — skipping.")
+        return None
     except Exception as e:
         print(f"[LLM] Ollama check failed: {e}")
         return None

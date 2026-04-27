@@ -21,7 +21,8 @@ exports.getInstitutionalKnowledge = async (req, res) => {
         };
 
         try {
-            const aiResponse = await axios.get('http://127.0.0.1:5000/memory_stats');
+            const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+            const aiResponse = await axios.get(`${aiEngineUrl}/memory_stats`);
             aiData = aiResponse.data;
         } catch (aiError) {
             console.warn('AI Memory Stats unavailable, using default:', aiError.message);

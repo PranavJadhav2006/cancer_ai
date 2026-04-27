@@ -39,7 +39,8 @@ exports.generateFormattedOutcomes = async (req, res) => {
         }
 
         // Step 1: Call the Python AI engine to get the raw outcome predictions.
-        const aiEngineResponse = await axios.post('http://127.0.0.1:5000/predict_side_effects', req.body);
+        const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+        const aiEngineResponse = await axios.post(`${aiEngineUrl}/predict_side_effects`, req.body);
         const rawOutcomeData = aiEngineResponse.data;
 
         // Extract side effects and patient data for formatting
@@ -103,9 +104,10 @@ exports.generateFormattedOutcomes = async (req, res) => {
                 error: error.response.data
             });
         } else if (error.request) {
+            const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
             return res.status(500).json({
                 success: false,
-                message: 'The AI engine is not responding. Please ensure it is running and accessible at http://127.0.0.1:5000.'
+                message: `The AI engine is not responding. Please ensure it is running and accessible at ${aiEngineUrl}.`
             });
         }
         res.status(500).json({
@@ -401,7 +403,8 @@ exports.downloadReport = async (req, res) => {
         }
 
         // 3. Call Python AI Engine to generate report
-        const aiResponse = await axios.post('http://127.0.0.1:5000/generate_report', reportData);
+        const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+        const aiResponse = await axios.post(`${aiEngineUrl}/generate_report`, reportData);
 
         if (aiResponse.data.success) {
             const filePath = aiResponse.data.path;

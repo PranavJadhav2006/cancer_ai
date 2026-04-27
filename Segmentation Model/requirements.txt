@@ -12,4 +12,5 @@ numpy
 pandas
 matplotlib
 scikit-learn
-
+Pillow
+tqdm

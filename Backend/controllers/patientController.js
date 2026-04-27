@@ -38,7 +38,8 @@ exports.analyzePathology = async (req, res) => {
         console.log(`Sending file to AI Engine for ${patient.cancerType} analysis...`);
         let aiResponse;
         try {
-            aiResponse = await axios.post('http://localhost:5000/process_report_file', {
+            const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+            aiResponse = await axios.post(`${aiEngineUrl}/process_report_file`, {
                 file_path: absolutePath,
                 cancer_type: patient.cancerType // Pass the type from Intake Form
             });

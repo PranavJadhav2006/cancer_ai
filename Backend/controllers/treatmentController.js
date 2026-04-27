@@ -21,7 +21,8 @@ exports.generatePathway = async (req, res) => {
             });
         }
 
-        const aiEngineResponse = await axios.post('http://127.0.0.1:5000/generate_pathway', { plan });
+        const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+        const aiEngineResponse = await axios.post(`${aiEngineUrl}/generate_pathway`, { plan });
         const pathway = aiEngineResponse.data.pathway;
 
         res.json({
@@ -59,7 +60,8 @@ exports.generateFormattedPlan = async (req, res) => {
                 // Still try to get experiences even for cached plans to show learning
                 let experiences = [];
                 try {
-                    const aiMemResponse = await axios.post('http://127.0.0.1:5000/recommend', req.body);
+                    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+                    const aiMemResponse = await axios.post(`${aiEngineUrl}/recommend`, req.body);
                     experiences = aiMemResponse.data.experiences || [];
                 } catch (e) { console.log('Memory fetch failed for cache'); }
 
@@ -84,8 +86,9 @@ exports.generateFormattedPlan = async (req, res) => {
         }
 
         // Step 1: Call the Python AI engine to get the raw treatment plan and evidence.
-        console.log('Step 1: Calling Python AI engine at http://127.0.0.1:5000/recommend...');
-        const aiEngineResponse = await axios.post('http://127.0.0.1:5000/recommend', req.body);
+        const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+        console.log(`Step 1: Calling Python AI engine at ${aiEngineUrl}/recommend...`);
+        const aiEngineResponse = await axios.post(`${aiEngineUrl}/recommend`, req.body);
 
         const rawTreatmentData = aiEngineResponse.data;
         
@@ -102,7 +105,8 @@ exports.generateFormattedPlan = async (req, res) => {
         
         if (!formattedEvidence && evidence && evidence.length > 0) {
             console.log('No pre-formatted evidence found. Calling AI Engine for formatting...');
-            const formatResponse = await axios.post('http://127.0.0.1:5000/format_evidence', { evidence });
+            const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+            const formatResponse = await axios.post(`${aiEngineUrl}/format_evidence`, { evidence });
             formattedEvidence = formatResponse.data.formattedText;
         } else if (!formattedEvidence) {
             formattedEvidence = "No specific evidence provided for formatting.";
@@ -173,9 +177,10 @@ exports.generateFormattedPlan = async (req, res) => {
         } else if (error.request) {
             // Request was made but no response received
             console.error('The request was made, but no response was received from the AI engine.');
+            const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
             return res.status(500).json({
                 success: false,
-                message: 'The AI engine is not responding. Please ensure it is running and accessible at http://127.0.0.1:5000.'
+                message: `The AI engine is not responding. Please ensure it is running and accessible at ${aiEngineUrl}.`
             });
         }
         // Other errors (e.g., Ollama/AI Engine failure, data processing error)
@@ -263,7 +268,8 @@ exports.queryTreatmentPlan = async (req, res) => {
         };
 
         console.log(`Step: Querying AI engine for treatment ${treatmentId}...`);
-        const aiResponse = await axios.post('http://127.0.0.1:5000/chat', aiRequestData);
+        const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+        const aiResponse = await axios.post(`${aiEngineUrl}/chat`, aiRequestData);
 
         res.json({
             success: true,
@@ -419,7 +425,8 @@ exports.approveTreatment = async (req, res) => {
                 console.log('[LEARNING] Detected Human Modification. Flagging as a supervised correction.');
             }
 
-            await axios.post('http://127.0.0.1:5000/learn_from_case', {
+            const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://127.0.0.1:5000';
+            await axios.post(`${aiEngineUrl}/learn_from_case`, {
                 patient_data: treatment.Patient ? treatment.Patient.toJSON() : {},
                 treatment_plan: {
                     primary_treatment: finalProtocol,

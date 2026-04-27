@@ -5,7 +5,7 @@ import { decryptPayload, encryptPayload } from './encryption';
 // Axios instance with request/response interceptors for automatic
 // AES-256-GCM encryption/decryption of sensitive API traffic.
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // The encryption key for API payloads (shared with backend via env)
 const API_ENCRYPTION_KEY = import.meta.env.VITE_AES_KEY || 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2';

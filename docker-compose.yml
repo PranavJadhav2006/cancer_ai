@@ -30,15 +30,21 @@ services:
     environment:
       NODE_ENV: production
       PORT: 8000
+      # In Docker, always use the local postgres container — no SSL/channel_binding complexity
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-neuro_onco_ai}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_here}
       JWT_EXPIRE: ${JWT_EXPIRE:-7d}
-      AES_SECRET_KEY: ${AES_SECRET_KEY}
+      AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY:-a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-phi3:14b}
       AI_ENGINE_URL: http://ai_engine:5000
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8000}
     volumes:
       - uploads_data:/app/uploads
+      - segmentation_output:/Segmentation Model/AR_Assets/results:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,10 +61,17 @@ services:
     environment:
       FLASK_ENV: production
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-phi3:14b}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_MODEL: ${GITHUB_MODEL:-gpt-4o}
     volumes:
       # Mount genomics VCF data and reports so the engine can read them
       - ./genomics:/app/genomics:ro
       - ./reports:/app/reports:ro
+      - uploads_data:/app/uploads:ro
 
   # ─── Segmentation Model (batch pipeline — run on demand) ───────────────────
   segmentation:
