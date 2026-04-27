@@ -1,0 +1,59 @@
+# ─── Stage 1: Build the React/Vite Frontend ──────────────────────────────────
+FROM node:20-alpine AS frontend-builder
+WORKDIR /frontend
+COPY Frontend/package.json Frontend/package-lock.json ./
+RUN npm ci
+COPY Frontend/ .
+RUN npm run build
+# Output: /frontend/dist
+
+# ─── Stage 2: Monolith Image (Node + Python) ─────────────────────────────────
+# We use python:3.11-slim as the base to handle the heavy AI dependencies efficiently.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 1. Install System Dependencies and Node.js 20
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    libgomp1 \
+    ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Setup AI Engine
+# Copy and install AI requirements first to leverage Docker caching
+COPY ai_engine/requirements.txt /app/ai_engine/
+WORKDIR /app/ai_engine
+RUN pip install --no-cache-dir -r requirements.txt
+COPY ai_engine/ /app/ai_engine/
+
+# 3. Setup Backend
+# Copy and install Backend requirements first to leverage Docker caching
+COPY Backend/package.json Backend/package-lock.json /app/Backend/
+WORKDIR /app/Backend
+RUN npm ci --omit=dev
+COPY Backend/ /app/Backend/
+
+# 4. Integrate Frontend
+# Copy the built frontend into the path the backend expects (Backend/server.js expects ../Frontend/dist)
+COPY --from=frontend-builder /frontend/dist /app/Frontend/dist
+
+# 5. Bring in Startup Script
+COPY start-monolith.sh /app/
+RUN chmod +x /app/start-monolith.sh
+
+WORKDIR /app
+
+# The backend will talk to the AI engine on localhost within the same container
+ENV AI_ENGINE_URL=http://localhost:5000
+ENV FLASK_ENV=production
+ENV NODE_ENV=production
+
+# Expose the Backend and AI Engine ports
+EXPOSE 8000 5000
+
+# Run the process manager script
+CMD ["/app/start-monolith.sh"]
