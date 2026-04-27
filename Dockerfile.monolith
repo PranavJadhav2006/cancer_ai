@@ -52,8 +52,7 @@ ENV AI_ENGINE_URL=http://localhost:5000
 ENV FLASK_ENV=production
 ENV NODE_ENV=production
 
-# Expose the Backend and AI Engine ports
-EXPOSE 8000 5000
+# Removed EXPOSE so Render handles port forwarding through process.env.PORT automatically
 
 # Run the process manager script
 CMD ["/app/start-monolith.sh"]
