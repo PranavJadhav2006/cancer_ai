@@ -142,7 +142,8 @@ app.get('*', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 8000;
+// Explicitly hardcode to 8000 so Render's EXPOSE 8000 perfectly aligns
+const PORT = 8000;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`
